@@ -71,31 +71,6 @@ function loadSalesDashboard(){
 
 }
 
-function loadExpensesDashboard(){
-
-    document
-        .getElementById("expensesPage")
-        .innerHTML = `
-
-            <div class="emptyState">
-
-                <h2>
-
-                    Expenses
-
-                </h2>
-
-                <button onclick="createExpensesWizard()">
-
-                    Create Monthly Expenses
-
-                </button>
-
-            </div>
-
-        `;
-
-}
 
 function renderSalesDashboard(data){
 
@@ -337,11 +312,7 @@ function calculateTotalSalesClient(r){
 
 function showDashboard(){
 
-  showTab("sales");
-
-  showTab("expenses");
-
-  loadSalesDashboard();
+    showTab(APP.currentTab);
 
 }
 
@@ -377,7 +348,7 @@ function showTab(tab){
 
     else
 
-        loadExpensesDashboard();
+        loadExpenseDashboard();
 
 }
 
@@ -498,11 +469,10 @@ console.log(result);`;
 
 function showSalesForm(){
 
-    showTab("sales");
+    document.getElementById("salesFormPage").style.display = "block";
 
-    
-    showTab("expenses");
-    
+    document.getElementById("dashboardPage").style.display = "none";
+
     initializeSalesForm();
 
 }
