@@ -43,16 +43,11 @@ async function copyFolder(folder){
 
             const dest = path.join(DIST, path.basename(item));
 
-            if(path.extname(item) === ".html"){
+          const ext = path.extname(item);
+
+            if(ext === ".html"){
 
                 let html = await fs.readFile(full, "utf8");
-
-                // Convert
-                // include("Views/X")
-                // include("CSS/X")
-                // include("Anything/X")
-                // into
-                // include("X")
 
                 html = html.replace(
                     /include\("([^"]*\/)?([^"]+)"\)/g,
@@ -61,7 +56,41 @@ async function copyFolder(folder){
 
                 await fs.writeFile(dest, html);
 
-            }else{
+            }
+
+            else if(ext === ".css"){
+
+                const css = await fs.readFile(full, "utf8");
+
+                const wrapped = `<style>\n${css}\n</style>`;
+
+                await fs.writeFile(
+                    path.join(
+                        DIST,
+                        path.basename(item, ".css") + ".html"
+                    ),
+                    wrapped
+                );
+
+            }
+
+            else if(ext === ".js" && folder.includes("JS")){
+
+                const js = await fs.readFile(full, "utf8");
+
+                const wrapped = `<script>\n${js}\n</script>`;
+
+                await fs.writeFile(
+                    path.join(
+                        DIST,
+                        path.basename(item, ".js") + ".html"
+                    ),
+                    wrapped
+                );
+
+            }
+
+            else{
 
                 await fs.copy(full, dest);
 

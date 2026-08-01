@@ -1,11 +1,4 @@
-<!doctype html>
-<html>
-  <head>
-    <base target="_top" />
-  </head>
-  <body>
-    <script>
-      const APP = {
+const APP = {
         period: "",
 
         currentTab: "sales",
@@ -469,6 +462,3 @@ console.log(result);`;
 
         return period === current;
       }
-    </script>
-  </body>
-</html>

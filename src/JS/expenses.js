@@ -1,11 +1,4 @@
-<!doctype html>
-<html>
-  <head>
-    <base target="_top" />
-  </head>
-  <body>
-    <script>
-      let EXPENSE = {
+let EXPENSE = {
         steps: [],
 
         current: 0,
@@ -325,6 +318,3 @@
 
         return item ? item.amount : "";
       }
-    </script>
-  </body>
-</html>

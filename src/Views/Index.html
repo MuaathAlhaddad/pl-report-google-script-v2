@@ -4,27 +4,28 @@
   <head>
     <base target="_top" />
 
-    <?!= include("CSS/Styles"); ?>
+    <?!= include("CSS/styles"); ?>
   </head>
 
   <body>
     <div id="app">
       <h1>save changes</h1>
 
-      <?!= include("Views/View_Dashboard"); ?> 
+      <?!= include("Views/dashboard"); ?> 
 
-      <?!= include("Views/View_SalesForm"); ?> 
+      <?!= include("Views/sales-form"); ?> 
 
-      <?!= include("Views/View_Expenses"); ?> 
+      <?!= include("Views/expenses"); ?> 
 
-      <?!= include("Views/View_ExpensesForm"); ?>
+      <?!= include("Views/expenses-form"); ?>
 
     </div>
 
-    <?!= include("Views/Scripts"); ?> 
+    <?!= include("JS/app"); ?>
 
-    <?!= include("Views/Scripts_Router"); ?>
-    
-    <?!= include("Views/Scripts_Expenses"); ?>
+    <?!= include("JS/router"); ?>
+
+    <?!= include("JS/expenses"); ?>
+
   </body>
 </html>
