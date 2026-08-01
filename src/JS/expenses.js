@@ -1,25 +1,25 @@
 let EXPENSE = {
-        steps: [],
+    steps: [],
 
-        current: 0,
+    current: 0,
 
-        values: {},
-      };
+    values: {},
+};
 
-      function setExpenseValue(category, subcategory, account, amount) {
-        amount = Number(amount) || 0;
+function setExpenseValue(category, subcategory, account, amount) {
+    amount = Number(amount) || 0;
 
-        const item = EXPENSE.values.find(
-          (e) =>
+    const item = EXPENSE.values.find(
+        (e) =>
             e.category == category &&
             e.subcategory == subcategory &&
             e.account == account,
-        );
+    );
 
-        if (item) {
-          item.amount = amount;
-        } else {
-          EXPENSE.values.push({
+    if (item) {
+        item.amount = amount;
+    } else {
+        EXPENSE.values.push({
             category,
 
             subcategory,
@@ -27,18 +27,18 @@ let EXPENSE = {
             account,
 
             amount,
-          });
-        }
-      }
+        });
+    }
+}
 
-      function createExpensesWizard() {
-        google.script.run
+function createExpensesWizard() {
+    google.script.run
 
-          .withSuccessHandler(function (data) {
+        .withSuccessHandler(function (data) {
             if (data.exists) {
-              alert("Expenses for this month already exist.");
+                alert("Expenses for this month already exist.");
 
-              return;
+                return;
             }
 
             EXPENSE.steps = data.setup;
@@ -48,21 +48,21 @@ let EXPENSE = {
             EXPENSE.current = 0;
 
             renderExpenseStep();
-          })
+        })
 
-          .getExpenseWizard(APP.period);
-      }
+        .getExpenseWizard(APP.period);
+}
 
-      function loadExpenseDashboard() {
-        google.script.run
+function loadExpenseDashboard() {
+    google.script.run
 
-          .withSuccessHandler(renderExpenseDashboard)
+        .withSuccessHandler(renderExpenseDashboard)
 
-          .getExpenseDashboard(APP.period);
-      }
+        .getExpenseDashboard(APP.period);
+}
 
-      function renderExpenseDashboard(data) {
-        let html = `
+function renderExpenseDashboard(data) {
+    let html = `
 
         <div class="pageHeader">
 
@@ -88,9 +88,9 @@ let EXPENSE = {
 
     `;
 
-        html += `<table class="salesTable">`;
+    html += `<table class="salesTable">`;
 
-        html += `
+    html += `
         <thead>
             <tr>
                 <th>Main Category</th>
@@ -100,8 +100,8 @@ let EXPENSE = {
         <tbody>
     `;
 
-        for (const category in data.categories) {
-          html += `
+    for (const category in data.categories) {
+        html += `
 
             <tr>
 
@@ -112,12 +112,12 @@ let EXPENSE = {
             </tr>
 
         `;
-        }
+    }
 
-        html += `</tbody></table>`;
+    html += `</tbody></table>`;
 
-        if (!data.exists) {
-          html += `
+    if (!data.exists) {
+        html += `
 
             <div style="margin-top:25px;text-align:right;">
 
@@ -132,8 +132,8 @@ let EXPENSE = {
             </div>
 
         `;
-        } else {
-          html += `
+    } else {
+        html += `
 
             <div
                 style="
@@ -147,36 +147,36 @@ let EXPENSE = {
             </div>
 
         `;
-        }
+    }
 
-        document.getElementById("expenseDashboard").innerHTML = html;
-      }
+    document.getElementById("expenseDashboard").innerHTML = html;
+}
 
-      function showExpenseWizard() {
-        document.getElementById("expenseDashboard").style.display = "none";
+function showExpenseWizard() {
+    document.getElementById("expenseDashboard").style.display = "none";
 
-        document.getElementById("expenseWizard").style.display = "block";
+    document.getElementById("expenseWizard").style.display = "block";
 
-        createExpensesWizard();
-      }
+    createExpensesWizard();
+}
 
-      function renderExpenseStep() {
-        const step = EXPENSE.steps[EXPENSE.current];
+function renderExpenseStep() {
+    const step = EXPENSE.steps[EXPENSE.current];
 
-        document.getElementById("expenseTitle").innerHTML = step.title;
+    document.getElementById("expenseTitle").innerHTML = step.title;
 
-        let html = "";
+    let html = "";
 
-        // ========= General Section =========
+    // ========= General Section =========
 
-        if (step.general && step.general.length) {
-          html += `
+    if (step.general && step.general.length) {
+        html += `
             <div class="expenseSection">
 
                 <h2>عام</h2>
         `;
 
-          step.general.forEach((name) => {
+        step.general.forEach((name) => {
             html += `
 
                 <div class="expenseRow">
@@ -199,15 +199,15 @@ let EXPENSE = {
                 </div>
 
             `;
-          });
+        });
 
-          html += "</div>";
-        }
+        html += "</div>";
+    }
 
-        // ========= Subcategory Sections =========
+    // ========= Subcategory Sections =========
 
-        if (step.sections) {
-          step.sections.forEach((section) => {
+    if (step.sections) {
+        step.sections.forEach((section) => {
             html += `
 
                 <div class="expenseSection">
@@ -217,7 +217,7 @@ let EXPENSE = {
             `;
 
             section.accounts.forEach((account) => {
-              html += `
+                html += `
 
                     <div class="expenseRow">
 
@@ -242,79 +242,78 @@ let EXPENSE = {
             });
 
             html += "</div>";
-          });
-        }
+        });
+    }
 
-        document.getElementById("expenseWizard").innerHTML = html;
+    document.getElementById("expenseWizard").innerHTML = html;
 
-        // ========= Navigation =========
+    // ========= Navigation =========
 
-        document.getElementById("prevExpense").style.display =
-          EXPENSE.current == 0 ? "none" : "inline-block";
+    document.getElementById("prevExpense").style.display =
+        EXPENSE.current == 0 ? "none" : "inline-block";
 
-        document.getElementById("nextExpense").style.display =
-          EXPENSE.current == EXPENSE.steps.length - 1 ? "none" : "inline-block";
+    document.getElementById("nextExpense").style.display =
+        EXPENSE.current == EXPENSE.steps.length - 1 ? "none" : "inline-block";
 
-        document.getElementById("saveExpense").style.display =
-          EXPENSE.current == EXPENSE.steps.length - 1 ? "inline-block" : "none";
+    document.getElementById("saveExpense").style.display =
+        EXPENSE.current == EXPENSE.steps.length - 1 ? "inline-block" : "none";
 
-        // ========= Progress =========
+    // ========= Progress =========
 
-        document.getElementById("stepNumber").innerHTML =
-          "Step " + (EXPENSE.current + 1);
+    document.getElementById("stepNumber").innerHTML =
+        "Step " + (EXPENSE.current + 1);
 
-        document.getElementById("stepTotal").innerHTML =
-          "of " + EXPENSE.steps.length;
+    document.getElementById("stepTotal").innerHTML =
+        "of " + EXPENSE.steps.length;
 
-        const progress = ((EXPENSE.current + 1) / EXPENSE.steps.length) * 100;
+    const progress = ((EXPENSE.current + 1) / EXPENSE.steps.length) * 100;
 
-        document.getElementById("wizardProgressBar").style.width =
-          progress + "%";
+    document.getElementById("wizardProgressBar").style.width = progress + "%";
 
-        updateExpenseSummary();
-      }
+    updateExpenseSummary();
+}
 
-      function saveExpensesForm() {
-        google.script.run
+function saveExpensesForm() {
+    google.script.run
 
-          .withSuccessHandler(function () {
+        .withSuccessHandler(function () {
             alert("Expenses saved successfully.");
 
             showTab("expenses");
-          })
+        })
 
-          .saveExpenses({
+        .saveExpenses({
             period: APP.period,
 
             expenses: EXPENSE.values,
-          });
-      }
-
-      function updateExpenseSummary() {
-        const step = EXPENSE.steps[EXPENSE.current];
-
-        let stepTotal = 0;
-
-        let monthTotal = 0;
-
-        EXPENSE.values.forEach((e) => {
-          monthTotal += e.amount;
-
-          if (e.category == step.title) stepTotal += e.amount;
         });
+}
 
-        document.getElementById("stepAmount").innerHTML = money(stepTotal);
+function updateExpenseSummary() {
+    const step = EXPENSE.steps[EXPENSE.current];
 
-        document.getElementById("monthAmount").innerHTML = money(monthTotal);
-      }
+    let stepTotal = 0;
 
-      function getExpenseValue(category, subcategory, account) {
-        const item = EXPENSE.values.find(
-          (e) =>
+    let monthTotal = 0;
+
+    EXPENSE.values.forEach((e) => {
+        monthTotal += e.amount;
+
+        if (e.category == step.title) stepTotal += e.amount;
+    });
+
+    document.getElementById("stepAmount").innerHTML = money(stepTotal);
+
+    document.getElementById("monthAmount").innerHTML = money(monthTotal);
+}
+
+function getExpenseValue(category, subcategory, account) {
+    const item = EXPENSE.values.find(
+        (e) =>
             e.category == category &&
             e.subcategory == subcategory &&
             e.account == account,
-        );
+    );
 
-        return item ? item.amount : "";
-      }
+    return item ? item.amount : "";
+}

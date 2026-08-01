@@ -1,96 +1,98 @@
 function getDashboard(period) {
-  const summary = getSummary(period);
+    const summary = getSummary(period);
 
-  const expenses = getExpenses(period);
+    const expenses = getExpenses(period);
 
-  const goal = getGoal(period);
+    const goal = getGoal(period);
 
-  const profit = summary.monthSales * CONFIG.PROFIT_MARGIN;
+    const profit = summary.monthSales * CONFIG.PROFIT_MARGIN;
 
-  return {
-    summary,
+    return {
+        summary,
 
-    goal,
+        goal,
 
-    expenses,
+        expenses,
 
-    profit,
+        profit,
 
-    netProfit: profit - expenses,
+        netProfit: profit - expenses,
 
-    sales: getSales(period),
-  };
+        sales: getSales(period),
+    };
 }
 
 function getSales(period) {
-  const sheet = SpreadsheetApp.getActive().getSheetByName(CONFIG.SHEETS.SALES);
-
-  const values = sheet.getDataRange().getValues();
-
-  if (values.length <= 1) return [];
-
-  const sales = [];
-
-  for (let i = 1; i < values.length; i++) {
-    const row = values[i];
-
-    if (!(row[0] instanceof Date)) continue;
-
-    const date = new Date(row[0]);
-
-    const rowPeriod = Utilities.formatDate(
-      date,
-      Session.getScriptTimeZone(),
-      "yyyy-MM",
+    const sheet = SpreadsheetApp.getActive().getSheetByName(
+        CONFIG.SHEETS.SALES,
     );
 
-    if (rowPeriod != period) continue;
+    const values = sheet.getDataRange().getValues();
 
-    sales.push({
-      row: i + 1,
+    if (values.length <= 1) return [];
 
-      date: formatDate(date),
+    const sales = [];
 
-      cash: Number(row[1]) || 0,
+    for (let i = 1; i < values.length; i++) {
+        const row = values[i];
 
-      creditInvoices: Number(row[2]) || 0,
+        if (!(row[0] instanceof Date)) continue;
 
-      payments: Number(row[4]) || 0,
+        const date = new Date(row[0]);
 
-      dailyExpense: Number(row[5]) || 0,
+        const rowPeriod = Utilities.formatDate(
+            date,
+            Session.getScriptTimeZone(),
+            "yyyy-MM",
+        );
 
-      otherExpenses: Number(row[6]) || 0,
+        if (rowPeriod != period) continue;
 
-      customerPayments: Math.abs(Number(row[7])) || 0,
+        sales.push({
+            row: i + 1,
 
-      cashWithdrawal: Number(row[8]) || 0,
+            date: formatDate(date),
 
-      cashDeposit: Math.abs(Number(row[9])) || 0,
+            cash: Number(row[1]) || 0,
 
-      totalSales: Number(row[11]) || 0,
-    });
-  }
+            creditInvoices: Number(row[2]) || 0,
 
-  return sales;
+            payments: Number(row[4]) || 0,
+
+            dailyExpense: Number(row[5]) || 0,
+
+            otherExpenses: Number(row[6]) || 0,
+
+            customerPayments: Math.abs(Number(row[7])) || 0,
+
+            cashWithdrawal: Number(row[8]) || 0,
+
+            cashDeposit: Math.abs(Number(row[9])) || 0,
+
+            totalSales: Number(row[11]) || 0,
+        });
+    }
+
+    return sales;
 }
 
 function getSummary(period) {
-  const sales = getSales(period);
+    const sales = getSales(period);
 
-  let monthSales = 0;
-  let bestDay = 0;
+    let monthSales = 0;
+    let bestDay = 0;
 
-  sales.forEach((r) => {
-    monthSales += r.totalSales;
+    sales.forEach((r) => {
+        monthSales += r.totalSales;
 
-    if (r.totalSales > bestDay) bestDay = r.totalSales;
-  });
+        if (r.totalSales > bestDay) bestDay = r.totalSales;
+    });
 
-  return {
-    monthSales,
+    return {
+        monthSales,
 
-    average: sales.length ? monthSales / sales.length : 0,
+        average: sales.length ? monthSales / sales.length : 0,
 
-    bestDay,
-  };
+        bestDay,
+    };
 }

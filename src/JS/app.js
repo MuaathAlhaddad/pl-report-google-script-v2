@@ -1,104 +1,104 @@
 const APP = {
-        period: "",
+    period: "",
 
-        currentTab: "sales",
-      };
+    currentTab: "sales",
+};
 
-      window.onload = function () {
-        initialize();
-      };
-      function initialize() {
-        const input = document.getElementById("periodSelector");
+window.onload = function () {
+    initialize();
+};
+function initialize() {
+    const input = document.getElementById("periodSelector");
 
-        const today = new Date();
+    const today = new Date();
 
-        APP.period =
-          today.getFullYear() +
-          "-" +
-          String(today.getMonth() + 1).padStart(2, "0");
+    APP.period =
+        today.getFullYear() +
+        "-" +
+        String(today.getMonth() + 1).padStart(2, "0");
 
-        input.value = APP.period;
+    input.value = APP.period;
 
-        input.onchange = function () {
-          APP.period = this.value;
+    input.onchange = function () {
+        APP.period = this.value;
 
-          if (APP.currentTab == "sales") {
+        if (APP.currentTab == "sales") {
             loadSalesDashboard();
-          } else {
+        } else {
             loadExpenseDashboard();
-          }
-        };
+        }
+    };
 
-        loadSalesDashboard();
-      }
+    loadSalesDashboard();
+}
 
-      function getValue(id) {
-        const el = document.getElementById(id);
+function getValue(id) {
+    const el = document.getElementById(id);
 
-        return el ? Number(el.value) || 0 : 0;
-      }
+    return el ? Number(el.value) || 0 : 0;
+}
 
-      function loadSalesDashboard() {
-        const period = document.getElementById("periodSelector").value;
+function loadSalesDashboard() {
+    const period = document.getElementById("periodSelector").value;
 
-        google.script.run
-          .withSuccessHandler(renderSalesDashboard)
-          .getDashboard(period);
-      }
+    google.script.run
+        .withSuccessHandler(renderSalesDashboard)
+        .getDashboard(period);
+}
 
-      function renderSalesDashboard(data) {
-        renderSummaryCards(data);
+function renderSalesDashboard(data) {
+    renderSummaryCards(data);
 
-        renderSalesTable(data.sales);
-      }
+    renderSalesTable(data.sales);
+}
 
-      function renderSummaryCards(data) {
-        const progress =
-          data.goal > 0 ? (data.summary.monthSales / data.goal) * 100 : 0;
+function renderSummaryCards(data) {
+    const progress =
+        data.goal > 0 ? (data.summary.monthSales / data.goal) * 100 : 0;
 
-        const cards = [
-          {
+    const cards = [
+        {
             title: "Month Sales",
             value: money(data.summary.monthSales),
             color: "#1976D2",
-          },
+        },
 
-          {
+        {
             title: "Goal",
             value: money(data.goal),
             color: "#6A1B9A",
             progress: Math.min(progress, 100),
-          },
+        },
 
-          {
+        {
             title: "Avg / Day",
             value: money(data.summary.average),
             color: "#00838F",
-          },
+        },
 
-          {
+        {
             title: "Profit (5%)",
             value: money(data.profit),
             color: "#2E7D32",
-          },
+        },
 
-          {
+        {
             title: "Expenses",
             value: money(data.expenses),
             color: "#EF6C00",
-          },
+        },
 
-          {
+        {
             title: "Net Profit",
             value: money(data.netProfit),
             color: data.netProfit >= 0 ? "#2E7D32" : "#C62828",
-          },
-        ];
+        },
+    ];
 
-        let html = '<div class="summaryGrid">';
+    let html = '<div class="summaryGrid">';
 
-        cards.forEach((card) => {
-          html += `
+    cards.forEach((card) => {
+        html += `
 
         <div class="summaryCard">
 
@@ -112,8 +112,8 @@ const APP = {
             </div>
 
             ${
-              card.progress !== undefined
-                ? `
+                card.progress !== undefined
+                    ? `
                 <div class="progressContainer">
 
                     <div
@@ -136,21 +136,21 @@ const APP = {
 
                 </div>
               `
-                : ""
+                    : ""
             }
 
         </div>
 
         `;
-        });
+    });
 
-        html += "</div>";
+    html += "</div>";
 
-        document.getElementById("summaryCards").innerHTML = html;
-      }
+    document.getElementById("summaryCards").innerHTML = html;
+}
 
-      function renderSalesTable(rows) {
-        let html = `
+function renderSalesTable(rows) {
+    let html = `
 
 <table class="salesTable">
 
@@ -177,8 +177,8 @@ const APP = {
 
 `;
 
-        rows.forEach((r) => {
-          html += `
+    rows.forEach((r) => {
+        html += `
 
 <tr class="salesRow" >
 
@@ -205,12 +205,12 @@ const APP = {
 </tr>
 
 `;
-        });
+    });
 
-        const period = document.getElementById("periodSelector").value;
+    const period = document.getElementById("periodSelector").value;
 
-        if (isCurrentPeriod(period)) {
-          html += `
+    if (isCurrentPeriod(period)) {
+        html += `
 
     <tr class="newReportRow">
 
@@ -223,242 +223,238 @@ const APP = {
     </tr>
 
     `;
-        }
+    }
 
-        html += `
+    html += `
 </tbody>
 </table>
 `;
 
-        document.getElementById("salesTable").innerHTML = html;
+    document.getElementById("salesTable").innerHTML = html;
 
-        const newRow = document.querySelector(".newReportRow");
+    const newRow = document.querySelector(".newReportRow");
 
-        if (newRow) {
-          newRow.onclick = showSalesForm;
-        }
-      }
+    if (newRow) {
+        newRow.onclick = showSalesForm;
+    }
+}
 
-      function calculateTotalSalesClient(r) {
-        return (
-          Number(r.cash) +
-          Number(r.creditInvoices) +
-          Number(r.payments) +
-          Number(r.dailyExpense) +
-          Number(r.otherExpenses) -
-          Number(r.customerPayments) -
-          Number(r.cashDeposit)
-        );
-      }
+function calculateTotalSalesClient(r) {
+    return (
+        Number(r.cash) +
+        Number(r.creditInvoices) +
+        Number(r.payments) +
+        Number(r.dailyExpense) +
+        Number(r.otherExpenses) -
+        Number(r.customerPayments) -
+        Number(r.cashDeposit)
+    );
+}
 
-      function showDashboard() {
-        showTab(APP.currentTab);
-      }
+function showDashboard() {
+    showTab(APP.currentTab);
+}
 
-      function showTab(tab) {
-        APP.currentTab = tab;
+function showTab(tab) {
+    APP.currentTab = tab;
 
-        document.getElementById("salesPage").style.display =
-          tab == "sales" ? "block" : "none";
+    document.getElementById("salesPage").style.display =
+        tab == "sales" ? "block" : "none";
 
-        document.getElementById("expensesPage").style.display =
-          tab == "expenses" ? "block" : "none";
+    document.getElementById("expensesPage").style.display =
+        tab == "expenses" ? "block" : "none";
 
-        document
-          .querySelectorAll(".tab")
-          .forEach((t) => t.classList.remove("active"));
+    document
+        .querySelectorAll(".tab")
+        .forEach((t) => t.classList.remove("active"));
 
-        document.getElementById(tab + "Tab").classList.add("active");
+    document.getElementById(tab + "Tab").classList.add("active");
 
-        if (tab == "sales") loadSalesDashboard();
-        else loadExpenseDashboard();
-      }
+    if (tab == "sales") loadSalesDashboard();
+    else loadExpenseDashboard();
+}
 
-      function initializeSalesForm() {
-        google.script.run
+function initializeSalesForm() {
+    google.script.run
 
-          .withSuccessHandler(fillForm)
+        .withSuccessHandler(fillForm)
 
-          .getNewReportData();
-      }
+        .getNewReportData();
+}
 
-      function fillForm(data) {
-        document.getElementById("date").value = data.date ?? "";
+function fillForm(data) {
+    document.getElementById("date").value = data.date ?? "";
 
-        document.getElementById("startingCash").value = data.startingCash ?? 0;
+    document.getElementById("startingCash").value = data.startingCash ?? 0;
 
-        document.getElementById("cash").value = data.cash ?? 0;
+    document.getElementById("cash").value = data.cash ?? 0;
 
-        document.getElementById("creditInvoices").value =
-          data.creditInvoices ?? 0;
+    document.getElementById("creditInvoices").value = data.creditInvoices ?? 0;
 
-        document.getElementById("payments").value = data.payments ?? "";
+    document.getElementById("payments").value = data.payments ?? "";
 
-        document.getElementById("otherExpenses").value =
-          data.otherExpenses ?? 0;
+    document.getElementById("otherExpenses").value = data.otherExpenses ?? 0;
 
-        document.getElementById("customerPayments").value =
-          data.customerPayments ?? 0;
+    document.getElementById("customerPayments").value =
+        data.customerPayments ?? 0;
 
-        document.getElementById("cashWithdrawal").value =
-          data.cashWithdrawal ?? 0;
+    document.getElementById("cashWithdrawal").value = data.cashWithdrawal ?? 0;
 
-        document.getElementById("cashDeposit").value = data.cashDeposit ?? 0;
+    document.getElementById("cashDeposit").value = data.cashDeposit ?? 0;
 
-        const expense = data.dailyExpense ?? 285;
+    const expense = data.dailyExpense ?? 285;
 
-        document.getElementById("dailyExpense").value = expense;
+    document.getElementById("dailyExpense").value = expense;
 
-        document.querySelectorAll(".expense-card").forEach((card) => {
-          card.classList.toggle(
+    document.querySelectorAll(".expense-card").forEach((card) => {
+        card.classList.toggle(
             "selected",
             Number(card.dataset.value) === expense,
-          );
-        });
+        );
+    });
 
-        updatePayments();
-      }
+    updatePayments();
+}
 
-      function money(value) {
-        return Number(value || 0).toLocaleString();
-      }
+function money(value) {
+    return Number(value || 0).toLocaleString();
+}
 
-      function selectExpense(card, value) {
-        document
-          .querySelectorAll(".expense-card")
-          .forEach((c) => c.classList.remove("selected"));
+function selectExpense(card, value) {
+    document
+        .querySelectorAll(".expense-card")
+        .forEach((c) => c.classList.remove("selected"));
 
-        card.classList.add("selected");
+    card.classList.add("selected");
 
-        document.getElementById("dailyExpense").value = value;
-      }
+    document.getElementById("dailyExpense").value = value;
+}
 
-      function copyDateText(button) {
-        const dateInput = document.getElementById("date").value;
+function copyDateText(button) {
+    const dateInput = document.getElementById("date").value;
 
-        if (!dateInput) {
-          alert("Please select a date first.");
-          return;
-        }
+    if (!dateInput) {
+        alert("Please select a date first.");
+        return;
+    }
 
-        const [year, month, day] = dateInput.split("-");
+    const [year, month, day] = dateInput.split("-");
 
-        const formatted = `${day}/${month}/${year}`;
+    const formatted = `${day}/${month}/${year}`;
 
-        navigator.clipboard.writeText(formatted);
+    navigator.clipboard.writeText(formatted);
 
-        const original = button.innerHTML;
+    const original = button.innerHTML;
 
-        button.innerHTML = "✅";
+    button.innerHTML = "✅";
 
-        setTimeout(function () {
-          button.innerHTML = original;
-        }, 1000);
-      }
+    setTimeout(function () {
+        button.innerHTML = original;
+    }, 1000);
+}
 
-      function copyPaymentsScript(button) {
-        const script = `const result = [...document.querySelectorAll(".entry-time")]
+function copyPaymentsScript(button) {
+    const script = `const result = [...document.querySelectorAll(".entry-time")]
 .map(e => parseFloat(e.innerText.replace(/,/g,"")))
 .join("+");
 
 console.log(result);`;
 
-        navigator.clipboard.writeText(script);
+    navigator.clipboard.writeText(script);
 
-        const original = button.innerHTML;
+    const original = button.innerHTML;
 
-        button.innerHTML = "✅";
+    button.innerHTML = "✅";
 
-        setTimeout(function () {
-          button.innerHTML = original;
-        }, 1000);
-      }
+    setTimeout(function () {
+        button.innerHTML = original;
+    }, 1000);
+}
 
-      function showSalesForm() {
-        document.getElementById("salesFormPage").style.display = "block";
+function showSalesForm() {
+    document.getElementById("salesFormPage").style.display = "block";
 
-        document.getElementById("dashboardPage").style.display = "none";
+    document.getElementById("dashboardPage").style.display = "none";
 
-        initializeSalesForm();
-      }
+    initializeSalesForm();
+}
 
-      function submitData() {
-        const paymentInfo = calculatePaymentsPreview();
+function submitData() {
+    const paymentInfo = calculatePaymentsPreview();
 
-        const data = {
-          date: document.getElementById("date").value,
+    const data = {
+        date: document.getElementById("date").value,
 
-          cash: Number(document.getElementById("cash").value) || 0,
+        cash: Number(document.getElementById("cash").value) || 0,
 
-          creditInvoices:
+        creditInvoices:
             Number(document.getElementById("creditInvoices").value) || 0,
 
-          payments: paymentInfo.expression,
+        payments: paymentInfo.expression,
 
-          dailyExpense:
+        dailyExpense:
             Number(document.getElementById("dailyExpense").value) || 0,
 
-          otherExpenses:
+        otherExpenses:
             Number(document.getElementById("otherExpenses").value) || 0,
 
-          customerPayments:
+        customerPayments:
             Number(document.getElementById("customerPayments").value) || 0,
 
-          cashWithdrawal:
+        cashWithdrawal:
             Number(document.getElementById("cashWithdrawal").value) || 0,
 
-          cashDeposit:
-            Number(document.getElementById("cashDeposit").value) || 0,
+        cashDeposit: Number(document.getElementById("cashDeposit").value) || 0,
 
-          startingCash:
+        startingCash:
             Number(document.getElementById("startingCash").value) || 0,
-        };
+    };
 
-        google.script.run
-          .withSuccessHandler(showDashboard)
-          .withFailureHandler(showError)
-          .saveReport(data);
-      }
+    google.script.run
+        .withSuccessHandler(showDashboard)
+        .withFailureHandler(showError)
+        .saveReport(data);
+}
 
-      function calculatePaymentsPreview() {
-        const expression = document.getElementById("payments").value.trim();
+function calculatePaymentsPreview() {
+    const expression = document.getElementById("payments").value.trim();
 
-        if (!expression) {
-          return {
+    if (!expression) {
+        return {
             expression: "",
             total: 0,
             count: 0,
-          };
-        }
-
-        const numbers = expression.split("+").map((x) => Number(x.trim()) || 0);
-
-        return {
-          expression,
-          total: numbers.reduce((a, b) => a + b, 0),
-          count: numbers.length,
         };
-      }
+    }
 
-      function updatePayments() {
-        const paymentInfo = calculatePaymentsPreview();
+    const numbers = expression.split("+").map((x) => Number(x.trim()) || 0);
 
-        document.getElementById("paymentsInfo").innerHTML =
-          `Payments: <b>${paymentInfo.count}</b> &nbsp; | &nbsp;
+    return {
+        expression,
+        total: numbers.reduce((a, b) => a + b, 0),
+        count: numbers.length,
+    };
+}
+
+function updatePayments() {
+    const paymentInfo = calculatePaymentsPreview();
+
+    document.getElementById("paymentsInfo").innerHTML =
+        `Payments: <b>${paymentInfo.count}</b> &nbsp; | &nbsp;
          Total: <b>${money(paymentInfo.total)}</b>`;
-      }
+}
 
-      function showError(err) {
-        alert(err.message || err);
-      }
+function showError(err) {
+    alert(err.message || err);
+}
 
-      function isCurrentPeriod(period) {
-        const today = new Date();
+function isCurrentPeriod(period) {
+    const today = new Date();
 
-        const current =
-          today.getFullYear() +
-          "-" +
-          String(today.getMonth() + 1).padStart(2, "0");
+    const current =
+        today.getFullYear() +
+        "-" +
+        String(today.getMonth() + 1).padStart(2, "0");
 
-        return period === current;
-      }
+    return period === current;
+}
