@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+  </head>
+  <body>
+    <div id="expensesPage" style="display: none">
+      <div class="pageHeader">
+        <h1 id="expenseTitle"></h1>
+      </div>
+
+      <div class="wizardProgress">
+        <div class="wizardProgressHeader">
+          <span id="stepNumber"></span>
+
+          <span id="stepTotal"></span>
+        </div>
+
+        <div class="progress">
+          <div id="wizardProgressBar" class="progressFill"></div>
+        </div>
+      </div>
+      <div id="expenseDashboard"></div>
+
+      <div id="expenseWizard" style="display: none"></div>
+
+      <div class="expenseTotals">
+        <div>
+          Current Step
+
+          <span id="stepAmount"> 0 </span>
+        </div>
+
+        <div>
+          Month Total
+
+          <span id="monthAmount"> 0 </span>
+        </div>
+      </div>
+
+      <div class="wizardButtons">
+        <button id="prevExpense" onclick="previousExpenseStep()">
+          ← Previous
+        </button>
+
+        <button id="nextExpense" onclick="nextExpenseStep()">Next →</button>
+
+        <button
+          id="saveExpense"
+          onclick="saveExpensesForm()"
+          style="display: none"
+        >
+          💾 Save Expenses
+        </button>
+      </div>
+    </div>
+  </body>
+</html>

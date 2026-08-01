@@ -1,0 +1,27 @@
+{
+  "name": "pl-report-google-script-v2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "node build.js",
+    "push": "npm run build && clasp push",
+    "watch": "node watch.js",
+    "pull": "clasp pull",
+    "open": "clasp open",
+    "logs": "clasp logs",
+    "deploy": "clasp deploy",
+    "format": "prettier --write \"src/**/*.{js,gs}\" \"src/CSS/**/*.html\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "fs-extra": "^11.4.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6"
+  }
+}

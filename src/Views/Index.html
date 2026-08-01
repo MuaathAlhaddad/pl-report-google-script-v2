@@ -1,0 +1,30 @@
+<!doctype html>
+
+<html>
+  <head>
+    <base target="_top" />
+
+    <?!= include("CSS/Styles"); ?>
+  </head>
+
+  <body>
+    <div id="app">
+      <h1>save changes</h1>
+
+      <?!= include("Views/View_Dashboard"); ?> 
+
+      <?!= include("Views/View_SalesForm"); ?> 
+
+      <?!= include("Views/View_Expenses"); ?> 
+
+      <?!= include("Views/View_ExpensesForm"); ?>
+
+    </div>
+
+    <?!= include("Views/Scripts"); ?> 
+
+    <?!= include("Views/Scripts_Router"); ?>
+    
+    <?!= include("Views/Scripts_Expenses"); ?>
+  </body>
+</html>
