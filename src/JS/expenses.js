@@ -152,14 +152,6 @@ function renderExpenseDashboard(data) {
     document.getElementById("expenseDashboard").innerHTML = html;
 }
 
-function showExpenseWizard() {
-    document.getElementById("expenseDashboard").style.display = "none";
-
-    document.getElementById("expenseWizard").style.display = "block";
-
-    createExpensesWizard();
-}
-
 function renderExpenseStep() {
     const step = EXPENSE.steps[EXPENSE.current];
 

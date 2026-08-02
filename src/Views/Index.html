@@ -1,31 +1,23 @@
 <!doctype html>
 
 <html>
-  <head>
-    <base target="_top" />
+    <head>
+        <base target="_top" />
 
-    <?!= include("CSS/styles"); ?>
-  </head>
+        <?!= include("CSS/styles"); ?>
+    </head>
 
-  <body>
-    <div id="app">
-      <h1>save changes</h1>
+    <body>
+        <div id="app">
+            <h1>save changes</h1>
 
-      <?!= include("Views/dashboard"); ?> 
+            <?!= include("Views/dashboard"); ?> <?!=
+            include("Views/sales-form"); ?> <?!= include("Views/expenses"); ?>
+            <?!= include("Views/expenses-form"); ?>
+        </div>
 
-      <?!= include("Views/sales-form"); ?> 
-
-      <?!= include("Views/expenses"); ?> 
-
-      <?!= include("Views/expenses-form"); ?>
-
-    </div>
-
-    <?!= include("JS/app"); ?>
-
-    <?!= include("JS/router"); ?>
-
-    <?!= include("JS/expenses"); ?>
-
-  </body>
+        <?!= include("JS/app"); ?> <?!= include("JS/expenses"); ?> <?!=
+        include("JS/router"); ?> <?!= include("JS/sales"); ?> <?!=
+        include("JS/utils"); ?>
+    </body>
 </html>
