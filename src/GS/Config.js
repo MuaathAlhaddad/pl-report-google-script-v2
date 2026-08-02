@@ -2,6 +2,7 @@ const CONFIG = {
     SHEETS: {
         SALES: "Sales",
         EXPENSES: "Expenses",
+        EXPENSE_SETUP: "ExpenseSetup",
         GOALS: "Goals",
     },
 
