@@ -64,27 +64,31 @@ function loadExpenseDashboard() {
 function renderExpenseDashboard(data) {
     let html = `
 
-        <div class="pageHeader">
+    <div class="pageHeader">
 
-            <h1>Expenses Dashboard</h1>
+        <div>
 
-        </div>
+            <div class="pageTitle">
 
-        <div class="summaryGrid">
+                📋 Expenses Dashboard
 
-            <div class="summaryCard">
+            </div>
 
-                <div class="title">
-                    Total Expenses
-                </div>
+            <div class="pageSubtitle">
 
-                <div class="value">
-                    ${money(data.total)}
-                </div>
+                Monthly Expense Breakdown
 
             </div>
 
         </div>
+
+        <div class="pagePeriod">
+
+            ${formatPeriod(APP.period)}
+
+        </div>
+
+    </div>
 
     `;
 

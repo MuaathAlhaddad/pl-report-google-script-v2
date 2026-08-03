@@ -148,3 +148,15 @@ function updatePayments() {
         `Payments: <b>${paymentInfo.count}</b> &nbsp; | &nbsp;
          Total: <b>${money(paymentInfo.total)}</b>`;
 }
+
+// used for page header
+function formatPeriod(period) {
+    const [year, month] = period.split("-");
+
+    const date = new Date(Number(year), Number(month) - 1);
+
+    return date.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+    });
+}

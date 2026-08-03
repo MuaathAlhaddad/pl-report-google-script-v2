@@ -7,6 +7,36 @@ function loadSalesDashboard() {
 }
 
 function renderSalesDashboard(data) {
+    let html = `
+
+    <div class="pageHeader">
+
+        <div>
+
+            <div class="pageTitle">
+
+                💰 Sales Dashboard
+
+            </div>
+
+            <div class="pageSubtitle">
+
+                Monthly Performance Overview
+
+            </div>
+
+        </div>
+
+        <div class="pagePeriod">
+
+            ${formatPeriod(APP.period)}
+
+        </div>
+
+    </div>
+
+    `;
+
     renderSummaryCards(data);
 
     renderSalesTable(data.sales);
