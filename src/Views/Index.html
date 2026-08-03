@@ -4,18 +4,19 @@
     <head>
         <base target="_top" />
 
-        <?!= include("CSS/styles"); ?>
+        <?!= include("CSS/styles.css"); ?>
     </head>
 
     <body>
         <div id="app">
-            <?!= include("Views/dashboard"); ?> <?!=
-            include("Views/sales-form"); ?> <?!= include("Views/expenses"); ?>
-            <?!= include("Views/expenses-form"); ?>
+            <?!= include("Views/dashboard.html"); ?> <?!=
+            include("Views/expenses-form.html"); ?> <?!=
+            include("Views/expenses.html"); ?> <?!=
+            include("Views/sales-form.html"); ?>
         </div>
 
-        <?!= include("JS/app"); ?> <?!= include("JS/expenses"); ?> <?!=
-        include("JS/router"); ?> <?!= include("JS/sales"); ?> <?!=
-        include("JS/utils"); ?>
+        <?!= include("JS/app.js"); ?> <?!= include("JS/expenses.js"); ?> <?!=
+        include("JS/router.js"); ?> <?!= include("JS/sales.js"); ?> <?!=
+        include("JS/utils.js"); ?>
     </body>
 </html>
