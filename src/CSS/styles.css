@@ -381,9 +381,14 @@ body {
 }
 .wizardProgress {
     margin-bottom: 25px;
+    max-width: 640px;
+    margin: 0 auto 18px;
 }
 
 .wizardProgressHeader {
+    font-size: 13px;
+    color: #888;
+    font-weight: normal;
     display: flex;
 
     justify-content: space-between;
@@ -669,4 +674,137 @@ body {
     color: #888;
     background: white;
     border-radius: 15px;
+}
+#expenseWizard {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.expenseSection {
+    margin-bottom: 20px;
+}
+
+.expenseSection h2 {
+    font-size: 15px;
+    margin: 0 0 10px;
+    padding-bottom: 6px;
+}
+
+.expenseRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 10px 16px;
+    margin-bottom: 8px;
+}
+
+.expenseRow label {
+    margin: 0;
+    font-weight: 600;
+    color: #444;
+    flex: 1;
+}
+
+.expenseRow input {
+    width: 130px;
+    padding: 8px 10px;
+    font-size: 15px;
+    flex: none;
+}
+.expenseAccordion {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.accItem {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+.accHeader {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.accHeader:hover {
+    background: #fafafa;
+}
+
+.accChevron {
+    color: #1976d2;
+    transition: transform 0.15s ease;
+    font-size: 13px;
+}
+
+.accTitle {
+    flex: 1;
+}
+
+.accTotal {
+    color: #1976d2;
+}
+
+.accBody {
+    padding: 4px 18px 12px;
+}
+
+.accRow {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f2f2f2;
+    font-size: 14px;
+    color: #555;
+}
+
+.accRow:last-child {
+    border-bottom: none;
+}
+#salesTable,
+.expenseBreakdown {
+    overflow-x: auto;
+}
+.fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #2e7d32;
+    color: white;
+    font-size: 24px;
+    border: none;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+}
+.loadingOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: transparent;
+}
+.loadingOverlay .spinner {
+    height: 100%;
+    width: 30%;
+    background: #1976d2;
+    animation: loadingBar 1s ease-in-out infinite;
+}
+@keyframes loadingBar {
+    0% {
+        margin-left: -30%;
+    }
+    100% {
+        margin-left: 100%;
+    }
 }

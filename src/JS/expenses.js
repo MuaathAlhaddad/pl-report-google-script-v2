@@ -86,37 +86,38 @@ function renderExpenseDashboard(data) {
     } else {
         const grouped = groupExpenseDetails(data.details);
 
-        html += `<div class="expenseBreakdown">`;
+        html += `<div class="expenseAccordion">`;
 
-        Object.keys(grouped).forEach((category) => {
+        Object.keys(grouped).forEach((category, idx) => {
             html += `
-                <div class="expenseGroup">
-                    <div class="expenseGroupHeader">
-                        <span>${category}</span>
-                        <span>${money(data.categories[category] || 0)}</span>
+                <div class="accItem">
+                    <div class="accHeader" onclick="toggleAccItem(this)">
+                        <span class="accChevron">▸</span>
+                        <span class="accTitle">${category}</span>
+                        <span class="accTotal">${money(data.categories[category] || 0)}</span>
                     </div>
-                    <table class="salesTable">
-                        <thead>
-                            <tr>
-                                <th>Subcategory</th>
-                                <th>Account</th>
-                                <th>Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                    <div class="accBody" style="display:none">
             `;
 
-            grouped[category].forEach((row) => {
-                html += `
-                    <tr>
-                        <td>${row.subcategory}</td>
-                        <td>${row.account || "-"}</td>
-                        <td>${money(row.amount)}</td>
-                    </tr>
-                `;
+            const bySub = {};
+            grouped[category].forEach((r) => {
+                if (!bySub[r.subcategory]) bySub[r.subcategory] = [];
+                bySub[r.subcategory].push(r);
             });
 
-            html += `</tbody></table></div>`;
+            Object.keys(bySub).forEach((sub) => {
+                bySub[sub].forEach((row) => {
+                    const label = row.account ? `${sub} · ${row.account}` : sub;
+                    html += `
+                        <div class="accRow">
+                            <span>${label}</span>
+                            <span>${money(row.amount)}</span>
+                        </div>
+                    `;
+                });
+            });
+
+            html += `</div></div>`;
         });
 
         html += `</div>`;
@@ -131,9 +132,7 @@ function renderExpenseDashboard(data) {
     if (!data.exists) {
         html += `
             <div style="margin-top:25px;text-align:right;">
-                <button class="primaryButton" onclick="showExpenseWizard()">
-                    ➕ Create Expenses
-                </button>
+                <button class="primaryButton" onclick="showExpenseWizard()">➕ Create Expenses</button>
             </div>
         `;
     } else {
@@ -145,6 +144,15 @@ function renderExpenseDashboard(data) {
     }
 
     document.getElementById("expenseDashboard").innerHTML = html;
+}
+
+function toggleAccItem(header) {
+    const body = header.nextElementSibling;
+    const chevron = header.querySelector(".accChevron");
+    const open = body.style.display !== "none";
+
+    body.style.display = open ? "none" : "block";
+    chevron.style.transform = open ? "rotate(0deg)" : "rotate(90deg)";
 }
 
 function groupExpenseDetails(details) {

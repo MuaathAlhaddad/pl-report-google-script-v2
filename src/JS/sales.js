@@ -210,17 +210,7 @@ function renderSalesTable(rows) {
 
     if (isCurrentPeriod(period)) {
         html += `
-
-    <tr class="newReportRow">
-
-        <td colspan="10">
-
-            ➕ Create New Report
-
-        </td>
-
-    </tr>
-
+   <button class="fab" onclick="showSalesForm()">+</button>
     `;
     }
 
