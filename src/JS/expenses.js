@@ -32,134 +32,137 @@ function setExpenseValue(category, subcategory, account, amount) {
 }
 
 function createExpensesWizard() {
-    google.script.run
+    showLoading();
 
+    google.script.run
         .withSuccessHandler(function (data) {
+            hideLoading();
+
             if (data.exists) {
                 alert("Expenses for this month already exist.");
-
                 return;
             }
 
             EXPENSE.steps = data.setup;
-
             EXPENSE.values = data.values;
-
             EXPENSE.current = 0;
-
             renderExpenseStep();
         })
-
+        .withFailureHandler(function (err) {
+            hideLoading();
+            showError(err);
+        })
         .getExpenseWizard(APP.period);
 }
 
 function loadExpenseDashboard() {
+    showLoading();
+
     google.script.run
-
-        .withSuccessHandler(renderExpenseDashboard)
-
+        .withSuccessHandler(function (data) {
+            renderExpenseDashboard(data);
+            hideLoading();
+        })
+        .withFailureHandler(function (err) {
+            hideLoading();
+            showError(err);
+        })
         .getExpenseDashboard(APP.period);
 }
 
 function renderExpenseDashboard(data) {
     let html = `
-
     <div class="pageHeader">
-
         <div>
-
-            <div class="pageTitle">
-
-                📋 Expenses Dashboard
-
-            </div>
-
-            <div class="pageSubtitle">
-
-                Monthly Expense Breakdown
-
-            </div>
-
+            <div class="pageTitle">📋 Expenses Dashboard</div>
+            <div class="pageSubtitle">Monthly Expense Breakdown</div>
         </div>
-
-        <div class="pagePeriod">
-
-            ${formatPeriod(APP.period)}
-
-        </div>
-
+        <div class="pagePeriod">${formatPeriod(APP.period)}</div>
     </div>
-
     `;
 
-    html += `<table class="salesTable">`;
+    if (!data.details.length) {
+        html += `<div class="emptyState">No expenses recorded for ${formatPeriod(APP.period)} yet.</div>`;
+    } else {
+        const grouped = groupExpenseDetails(data.details);
 
-    html += `
-        <thead>
-            <tr>
-                <th>Main Category</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-    `;
+        html += `<div class="expenseBreakdown">`;
 
-    for (const category in data.categories) {
+        Object.keys(grouped).forEach((category) => {
+            html += `
+                <div class="expenseGroup">
+                    <div class="expenseGroupHeader">
+                        <span>${category}</span>
+                        <span>${money(data.categories[category] || 0)}</span>
+                    </div>
+                    <table class="salesTable">
+                        <thead>
+                            <tr>
+                                <th>Subcategory</th>
+                                <th>Account</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            grouped[category].forEach((row) => {
+                html += `
+                    <tr>
+                        <td>${row.subcategory}</td>
+                        <td>${row.account || "-"}</td>
+                        <td>${money(row.amount)}</td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table></div>`;
+        });
+
+        html += `</div>`;
+
         html += `
-
-            <tr>
-
-                <td>${category}</td>
-
-                <td>${money(data.categories[category])}</td>
-
-            </tr>
-
+            <div class="expenseGrandTotal">
+                Month Total <span>${money(data.total)}</span>
+            </div>
         `;
     }
 
-    html += `</tbody></table>`;
-
     if (!data.exists) {
         html += `
-
             <div style="margin-top:25px;text-align:right;">
-
-                <button
-                    class="primaryButton"
-                    onclick="showExpenseWizard()">
-
+                <button class="primaryButton" onclick="showExpenseWizard()">
                     ➕ Create Expenses
-
                 </button>
-
             </div>
-
         `;
     } else {
         html += `
-
-            <div
-                style="
-                    margin-top:25px;
-                    color:#43A047;
-                    font-weight:bold;
-                ">
-
-                ✓ Expenses already recorded.
-
+            <div style="margin-top:25px;color:#43A047;font-weight:bold;">
+                ✓ Expenses already recorded for ${formatPeriod(APP.period)}.
             </div>
-
         `;
     }
 
     document.getElementById("expenseDashboard").innerHTML = html;
 }
 
+function groupExpenseDetails(details) {
+    const grouped = {};
+    details.forEach((d) => {
+        if (!grouped[d.category]) grouped[d.category] = [];
+        grouped[d.category].push(d);
+    });
+    return grouped;
+}
+
 function renderExpenseStep() {
     const step = EXPENSE.steps[EXPENSE.current];
 
     document.getElementById("expenseTitle").innerHTML = step.title;
+    document.getElementById("expenseWizardPeriod").innerHTML = formatPeriod(
+        APP.period,
+    );
 
     let html = "";
 
@@ -241,7 +244,7 @@ function renderExpenseStep() {
         });
     }
 
-    document.getElementById("expenseWizard").innerHTML = html;
+    document.getElementById("expenseSteps").innerHTML = html;
 
     // ========= Navigation =========
 
@@ -312,4 +315,18 @@ function getExpenseValue(category, subcategory, account) {
     );
 
     return item ? item.amount : "";
+}
+
+function nextExpenseStep() {
+    if (EXPENSE.current < EXPENSE.steps.length - 1) {
+        EXPENSE.current++;
+        renderExpenseStep();
+    }
+}
+
+function previousExpenseStep() {
+    if (EXPENSE.current > 0) {
+        EXPENSE.current--;
+        renderExpenseStep();
+    }
 }

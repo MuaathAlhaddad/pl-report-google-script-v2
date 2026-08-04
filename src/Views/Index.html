@@ -3,19 +3,23 @@
 <html>
     <head>
         <base target="_top" />
-
         <?!= include("CSS/styles.css"); ?>
     </head>
     <body>
-        <div id="app">
-            <?!= include("Views/dashboard.html"); ?> <?!=
-            include("Views/expenses-form.html"); ?> <?!=
-            include("Views/expenses.html"); ?> <?!=
-            include("Views/sales-form.html"); ?>
+        <div id="loadingIndicator" class="loadingOverlay" style="display: none">
+            <div class="spinner"></div>
         </div>
 
-        <?!= include("JS/app.js"); ?> <?!= include("JS/expenses.js"); ?> <?!=
-        include("JS/router.js"); ?> <?!= include("JS/sales.js"); ?> <?!=
-        include("JS/utils.js"); ?>
+        <div id="app">
+            <div id="mainPage">
+                <?!= include("Views/dashboard.html"); ?> <?!=
+                include("Views/expenses.html"); ?>
+            </div>
+            <?!= include("Views/sales-form.html"); ?>
+        </div>
+
+        <?!= include("JS/app.js"); ?> <?!= include("JS/insights.js"); ?> <?!=
+        include("JS/expenses.js"); ?> <?!= include("JS/router.js"); ?> <?!=
+        include("JS/sales.js"); ?> <?!= include("JS/utils.js"); ?>
     </body>
 </html>

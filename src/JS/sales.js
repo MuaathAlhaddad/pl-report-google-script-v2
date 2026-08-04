@@ -1,8 +1,17 @@
 function loadSalesDashboard() {
     const period = document.getElementById("periodSelector").value;
 
+    showLoading();
+
     google.script.run
-        .withSuccessHandler(renderSalesDashboard)
+        .withSuccessHandler(function (data) {
+            renderSalesDashboard(data);
+            hideLoading();
+        })
+        .withFailureHandler(function (err) {
+            hideLoading();
+            showError(err);
+        })
         .getDashboard(period);
 }
 

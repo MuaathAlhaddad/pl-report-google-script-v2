@@ -96,3 +96,40 @@ function getSummary(period) {
         bestDay,
     };
 }
+
+function getInsights(period) {
+    const months = getLastMonths(period, 6);
+
+    const salesTrend = months.map((m) => ({
+        period: m,
+        total: getSummary(m).monthSales,
+    }));
+
+    const expensesTrend = months.map((m) => ({
+        period: m,
+        total: getExpenses(m),
+    }));
+
+    return {
+        salesTrend,
+        expensesTrend,
+        expenseCategories: getExpenseCategories(period),
+        summary: getSummary(period),
+        expenses: getExpenses(period),
+        goal: getGoal(period),
+    };
+}
+
+function getLastMonths(period, count) {
+    const [year, month] = period.split("-").map(Number);
+    const months = [];
+
+    for (let i = count - 1; i >= 0; i--) {
+        const d = new Date(year, month - 1 - i, 1);
+        months.push(
+            Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM"),
+        );
+    }
+
+    return months;
+}

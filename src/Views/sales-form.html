@@ -1,96 +1,97 @@
 <div id="salesFormPage" style="display: none">
-  <div class="pageHeader">
-    <h1 id="formTitle">New Sales Report</h1>
-  </div>
-
-  <div class="formCard">
-    <label>Date</label>
-
-    <div class="inputRow">
-      <input type="date" id="date" />
-
-      <button type="button" onclick="copyDateText(this)">📋</button>
+    <div class="pageHeader">
+        <h1 id="formTitle">New Sales Report</h1>
+        <div class="pagePeriod" id="formPeriod"></div>
     </div>
 
-    <label>Closing Cash</label>
+    <div class="formCard">
+        <label>Date</label>
 
-    <input type="number" id="cash" value="0" />
+        <div class="inputRow">
+            <input type="date" id="date" />
 
-    <label>Credit Invoices</label>
-
-    <input type="number" id="creditInvoices" value="0" />
-
-    <label>Payments</label>
-
-    <div class="inputRow">
-      <input
-        type="text"
-        id="payments"
-        placeholder="500+300+1200"
-        oninput="updatePayments()"
-      />
-
-      <button type="button" onclick="copyPaymentsScript(this)">📋</button>
-    </div>
-
-    <div id="paymentsInfo"></div>
-
-    <label>Daily Expense</label>
-
-    <div class="expense-cards">
-      <div
-        class="expense-card selected"
-        data-value="285"
-        onclick="selectExpense(this, 285)"
-      >
-        <div class="title">
-          Normal Day
-
-          <span>285</span>
+            <button type="button" onclick="copyDateText(this)">📋</button>
         </div>
-      </div>
 
-      <div
-        class="expense-card"
-        data-value="335"
-        onclick="selectExpense(this, 335)"
-      >
-        <div class="title">
-          Heavy Day
+        <label>Closing Cash</label>
 
-          <span>335</span>
+        <input type="number" id="cash" value="0" />
+
+        <label>Credit Invoices</label>
+
+        <input type="number" id="creditInvoices" value="0" />
+
+        <label>Payments</label>
+
+        <div class="inputRow">
+            <input
+                type="text"
+                id="payments"
+                placeholder="500+300+1200"
+                oninput="updatePayments()"
+            />
+
+            <button type="button" onclick="copyPaymentsScript(this)">📋</button>
         </div>
-      </div>
+
+        <div id="paymentsInfo"></div>
+
+        <label>Daily Expense</label>
+
+        <div class="expense-cards">
+            <div
+                class="expense-card selected"
+                data-value="285"
+                onclick="selectExpense(this, 285)"
+            >
+                <div class="title">
+                    Normal Day
+
+                    <span>285</span>
+                </div>
+            </div>
+
+            <div
+                class="expense-card"
+                data-value="335"
+                onclick="selectExpense(this, 335)"
+            >
+                <div class="title">
+                    Heavy Day
+
+                    <span>335</span>
+                </div>
+            </div>
+        </div>
+
+        <input type="hidden" id="dailyExpense" value="285" />
+
+        <label>Other Expenses</label>
+
+        <input type="number" id="otherExpenses" value="0" />
+
+        <label>Customer Payments</label>
+
+        <input type="number" id="customerPayments" value="0" />
+
+        <label>Cash Withdrawal</label>
+
+        <input type="number" id="cashWithdrawal" value="0" />
+
+        <label>Cash Deposit</label>
+
+        <input type="number" id="cashDeposit" value="0" />
+
+        <label>Starting Cash</label>
+
+        <input type="number" id="startingCash" readonly />
+
+        <div class="buttonBar">
+            <button type="button" onclick="showDashboard()">Cancel</button>
+
+            <button id="saveButton" type="button" onclick="submitData()">
+                Save Report
+            </button>
+        </div>
     </div>
-
-    <input type="hidden" id="dailyExpense" value="285" />
-
-    <label>Other Expenses</label>
-
-    <input type="number" id="otherExpenses" value="0" />
-
-    <label>Customer Payments</label>
-
-    <input type="number" id="customerPayments" value="0" />
-
-    <label>Cash Withdrawal</label>
-
-    <input type="number" id="cashWithdrawal" value="0" />
-
-    <label>Cash Deposit</label>
-
-    <input type="number" id="cashDeposit" value="0" />
-
-    <label>Starting Cash</label>
-
-    <input type="number" id="startingCash" readonly />
-
-    <div class="buttonBar">
-      <button type="button" onclick="showDashboard()">Cancel</button>
-
-      <button id="saveButton" type="button" onclick="submitData()">
-        Save Report
-      </button>
-    </div>
-  </div>
 </div>

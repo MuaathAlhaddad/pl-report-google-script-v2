@@ -1,21 +1,24 @@
 <div class="tabs">
-  <button id="salesTab" class="tab active" onclick="showTab('sales')">
-    💰 Sales
-  </button>
+    <button id="dashboardTab" class="tab active" onclick="showTab('dashboard')">
+        📊 Dashboard
+    </button>
 
-  <button id="expensesTab" class="tab" onclick="showTab('expenses')">
-    📋 Expenses
-  </button>
+    <button id="salesTab" class="tab" onclick="showTab('sales')">
+        💰 Sales
+    </button>
+
+    <button id="expensesTab" class="tab" onclick="showTab('expenses')">
+        📋 Expenses
+    </button>
 </div>
 
 <div class="toolbar">
-  <input type="month" id="periodSelector" />
+    <input type="month" id="periodSelector" />
 </div>
 
-<div id="salesPage">
-  <div id="summaryCards"></div>
+<div id="dashboardPage"></div>
 
-  <div id="salesTable"></div>
+<div id="salesPage" style="display: none">
+    <div id="summaryCards"></div>
+    <div id="salesTable"></div>
 </div>
-
-<div id="expensesPage" style="display: none"></div>

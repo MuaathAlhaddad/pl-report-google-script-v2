@@ -1,15 +1,14 @@
 const APP = {
     period: "",
-
-    currentTab: "sales",
+    currentTab: "dashboard",
 };
 
 window.onload = function () {
     initialize();
 };
+
 function initialize() {
     const input = document.getElementById("periodSelector");
-
     const today = new Date();
 
     APP.period =
@@ -22,26 +21,37 @@ function initialize() {
     input.onchange = function () {
         APP.period = this.value;
 
-        if (APP.currentTab == "sales") {
-            loadSalesDashboard();
-        } else {
-            loadExpenseDashboard();
-        }
+        if (APP.currentTab == "sales") loadSalesDashboard();
+        else if (APP.currentTab == "expenses") loadExpenseDashboard();
+        else loadInsightsDashboard();
     };
 
-    loadSalesDashboard();
+    loadInsightsDashboard();
 }
 
 function initializeSalesForm() {
+    showLoading();
+
     google.script.run
-
-        .withSuccessHandler(fillForm)
-
+        .withSuccessHandler(function (data) {
+            fillForm(data);
+            hideLoading();
+        })
+        .withFailureHandler(function (err) {
+            hideLoading();
+            showError(err);
+        })
         .getNewReportData();
 }
 
 function fillForm(data) {
     document.getElementById("date").value = data.date ?? "";
+
+    if (data.date) {
+        document.getElementById("formPeriod").innerHTML = formatPeriod(
+            data.date.slice(0, 7),
+        );
+    }
 
     document.getElementById("startingCash").value = data.startingCash ?? 0;
 
