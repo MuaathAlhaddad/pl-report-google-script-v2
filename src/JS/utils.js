@@ -2,6 +2,13 @@ function money(value) {
     return Number(value || 0).toLocaleString();
 }
 
+const COLORS = {
+    primary: "#1976D2", // the one neutral brand accent (headline numbers)
+    neutral: "#546E7A", // supporting stats that aren't inherently good/bad
+    success: "#2E7D32", // profit-positive only
+    danger: "#C62828", // profit-negative only
+};
+
 function getValue(id) {
     const el = document.getElementById(id);
 

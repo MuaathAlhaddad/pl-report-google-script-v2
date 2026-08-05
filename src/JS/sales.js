@@ -59,38 +59,33 @@ function renderSummaryCards(data) {
         {
             title: "Month Sales",
             value: money(data.summary.monthSales),
-            color: "#1976D2",
+            color: COLORS.primary,
         },
-
         {
             title: "Goal",
             value: money(data.goal),
-            color: "#6A1B9A",
+            color: COLORS.neutral,
             progress: Math.min(progress, 100),
         },
-
         {
             title: "Avg / Day",
             value: money(data.summary.average),
-            color: "#00838F",
+            color: COLORS.neutral,
         },
-
         {
             title: "Profit (5%)",
             value: money(data.profit),
-            color: "#2E7D32",
+            color: COLORS.success,
         },
-
         {
             title: "Expenses",
             value: money(data.expenses),
-            color: "#EF6C00",
+            color: COLORS.neutral,
         },
-
         {
             title: "Net Profit",
             value: money(data.netProfit),
-            color: data.netProfit >= 0 ? "#2E7D32" : "#C62828",
+            color: data.netProfit >= 0 ? COLORS.success : COLORS.danger,
         },
     ];
 

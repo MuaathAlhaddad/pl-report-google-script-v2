@@ -1,4 +1,4 @@
-let CHARTS = { trend: null, category: null };
+let CHARTS = { trend: null, category: null, subcategory: null };
 let chartJsPromise = null;
 
 function ensureChartJs() {
@@ -47,15 +47,15 @@ function renderInsightsDashboard(data) {
     <div class="summaryGrid">
         <div class="summaryCard">
             <div class="title">Month Sales</div>
-            <div class="value" style="color:#1976D2">${money(data.summary.monthSales)}</div>
+            <div class="value" style="color:${COLORS.primary}">${money(data.summary.monthSales)}</div>
         </div>
         <div class="summaryCard">
             <div class="title">Month Expenses</div>
-            <div class="value" style="color:#EF6C00">${money(data.expenses)}</div>
+            <div class="value" style="color:${COLORS.neutral}">${money(data.expenses)}</div>
         </div>
         <div class="summaryCard">
             <div class="title">Net Profit</div>
-            <div class="value" style="color:${netProfit >= 0 ? "#2E7D32" : "#C62828"}">
+            <div class="value" style="color:${netProfit >= 0 ? COLORS.success : COLORS.danger}">
                 ${money(netProfit)}
             </div>
         </div>
@@ -70,6 +70,10 @@ function renderInsightsDashboard(data) {
             <h2>Expenses by Category</h2>
             <canvas id="categoryChart"></canvas>
         </div>
+        <div class="chartCard chartCardWide">
+            <h2>Top Expense Subcategories</h2>
+            <canvas id="subcategoryChart"></canvas>
+        </div>
     </div>
     `;
 
@@ -79,6 +83,7 @@ function renderInsightsDashboard(data) {
         .then(function () {
             renderTrendChart(data.salesTrend, data.expensesTrend);
             renderCategoryChart(data.expenseCategories);
+            renderSubcategoryChart(data.expenseSubcategories);
         })
         .catch(function (err) {
             document
@@ -153,6 +158,41 @@ function renderCategoryChart(categories) {
         options: {
             responsive: true,
             plugins: { legend: { position: "bottom" } },
+        },
+    });
+}
+function renderSubcategoryChart(subcategories) {
+    const ctx = document.getElementById("subcategoryChart");
+    if (!ctx) return;
+    if (CHARTS.subcategory) CHARTS.subcategory.destroy();
+
+    const entries = Object.entries(subcategories)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8);
+
+    if (!entries.length) {
+        ctx.parentElement.innerHTML = `<p style="color:#888;text-align:center;padding:30px;">No expenses recorded for this month yet.</p>`;
+        return;
+    }
+
+    CHARTS.subcategory = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: entries.map((e) => e[0]),
+            datasets: [
+                {
+                    label: "Amount",
+                    data: entries.map((e) => e[1]),
+                    backgroundColor: COLORS.primary,
+                    borderRadius: 6,
+                },
+            ],
+        },
+        options: {
+            indexAxis: "y",
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true } },
         },
     });
 }

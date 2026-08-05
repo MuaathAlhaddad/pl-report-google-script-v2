@@ -100,20 +100,14 @@ function getSummary(period) {
 function getInsights(period) {
     const months = getLastMonths(period, 6);
 
-    const salesTrend = months.map((m) => ({
-        period: m,
-        total: getSummary(m).monthSales,
-    }));
-
-    const expensesTrend = months.map((m) => ({
-        period: m,
-        total: getExpenses(m),
-    }));
+    const salesTrend = months.map((m) => ({ period: m, total: getSummary(m).monthSales }));
+    const expensesTrend = months.map((m) => ({ period: m, total: getExpenses(m) }));
 
     return {
         salesTrend,
         expensesTrend,
         expenseCategories: getExpenseCategories(period),
+        expenseSubcategories: getExpenseSubcategories(period),
         summary: getSummary(period),
         expenses: getExpenses(period),
         goal: getGoal(period),

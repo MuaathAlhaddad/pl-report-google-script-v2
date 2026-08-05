@@ -56,6 +56,9 @@ function createExpensesWizard() {
 }
 
 function loadExpenseDashboard() {
+    document.getElementById("expenseWizard").style.display = "none";
+    document.getElementById("expenseDashboard").style.display = "block";
+
     showLoading();
 
     google.script.run

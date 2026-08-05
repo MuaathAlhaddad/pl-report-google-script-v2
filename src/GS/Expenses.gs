@@ -168,3 +168,19 @@ function getExpenseRows() {
 
     return sheet.getDataRange().getValues();
 }
+function getExpenseSubcategories(period) {
+    const values = getExpenseRows();
+    const result = {};
+
+    for (let i = 1; i < values.length; i++) {
+        if (periodToString(values[i][COL.PERIOD]) != period) continue;
+
+        const category = values[i][COL.CATEGORY];
+        const subcategory = values[i][COL.SUBCATEGORY];
+        const key = category + " – " + subcategory;
+
+        result[key] = (result[key] || 0) + Number(values[i][COL.AMOUNT] || 0);
+    }
+
+    return result;
+}
