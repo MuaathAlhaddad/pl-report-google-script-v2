@@ -4,6 +4,7 @@ const CONFIG = {
         EXPENSES: "Expenses",
         EXPENSE_SETUP: "ExpenseSetup",
         GOALS: "Goals",
+        SUPPLIERS: "Suppliers",
     },
 
     PROFIT_MARGIN: 0.05,

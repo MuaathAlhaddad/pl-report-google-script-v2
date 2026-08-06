@@ -1,4 +1,8 @@
-let CHARTS = { trend: null, category: null, subcategory: null };
+let CHARTS = {
+    yearSales: null,
+    yearExpenses: null,
+};
+
 let chartJsPromise = null;
 
 function ensureChartJs() {
@@ -20,21 +24,23 @@ function ensureChartJs() {
 function loadInsightsDashboard() {
     showLoading();
 
-    google.script.run
-        .withSuccessHandler(function (data) {
-            renderInsightsDashboard(data);
+    const year = Number(APP.period.split("-")[0]);
+
+    Promise.all([
+        gsRun("getYearlyInsights", year),
+        gsRun("getSupplierCalendar"),
+    ])
+        .then(([yearData, suppliers]) => {
+            renderInsightsDashboard(yearData, suppliers);
             hideLoading();
         })
-        .withFailureHandler(function (err) {
+        .catch((err) => {
             hideLoading();
             showError(err);
-        })
-        .getInsights(APP.period);
+        });
 }
 
-function renderInsightsDashboard(data) {
-    const netProfit = data.summary.monthSales - data.expenses;
-
+function renderInsightsDashboard(yearData, suppliers) {
     let html = `
     <div class="pageHeader">
         <div>
@@ -44,36 +50,28 @@ function renderInsightsDashboard(data) {
         <div class="pagePeriod">${formatPeriod(APP.period)}</div>
     </div>
 
-    <div class="summaryGrid">
-        <div class="summaryCard">
-            <div class="title">Month Sales</div>
-            <div class="value" style="color:${COLORS.primary}">${money(data.summary.monthSales)}</div>
-        </div>
-        <div class="summaryCard">
-            <div class="title">Month Expenses</div>
-            <div class="value" style="color:${COLORS.neutral}">${money(data.expenses)}</div>
-        </div>
-        <div class="summaryCard">
-            <div class="title">Net Profit</div>
-            <div class="value" style="color:${netProfit >= 0 ? COLORS.success : COLORS.danger}">
-                ${money(netProfit)}
+    <div class="dashboardSection">
+        <div class="sectionTitle">Yearly Overview — ${yearData.year} vs ${yearData.year - 1}</div>
+
+        <div class="yearlyGrid">
+            <div class="chartCard">
+                <h2>Sales Comparison</h2>
+                <canvas id="yearSalesChart"></canvas>
+            </div>
+            <div class="chartCard">
+                <h2>Expenses Comparison</h2>
+                <canvas id="yearExpensesChart"></canvas>
+            </div>
+            <div class="chartCard">
+                <h2>${yearData.year} Totals</h2>
+                ${renderYearTotalsTable(yearData.totals, yearData.year)}
             </div>
         </div>
     </div>
 
-    <div class="chartsGrid">
-        <div class="chartCard">
-            <h2>Sales vs Expenses (Last 6 Months)</h2>
-            <canvas id="trendChart"></canvas>
-        </div>
-        <div class="chartCard">
-            <h2>Expenses by Category</h2>
-            <canvas id="categoryChart"></canvas>
-        </div>
-        <div class="chartCard chartCardWide">
-            <h2>Top Expense Subcategories</h2>
-            <canvas id="subcategoryChart"></canvas>
-        </div>
+    <div class="dashboardSection">
+        <div class="sectionTitle">This Week's Supplier Payments</div>
+        ${renderSupplierCalendar(suppliers)}
     </div>
     `;
 
@@ -81,118 +79,179 @@ function renderInsightsDashboard(data) {
 
     ensureChartJs()
         .then(function () {
-            renderTrendChart(data.salesTrend, data.expensesTrend);
-            renderCategoryChart(data.expenseCategories);
-            renderSubcategoryChart(data.expenseSubcategories);
+            renderYearSalesChart(yearData);
+            renderYearExpensesChart(yearData);
         })
         .catch(function (err) {
             document
                 .getElementById("dashboardPage")
                 .insertAdjacentHTML(
                     "beforeend",
-                    `<p style="color:#C62828;text-align:center;">Charts failed to load: ${err.message}</p>`,
+                    `<p style="color:${COLORS.danger};text-align:center;">Charts failed to load: ${err.message}</p>`,
                 );
         });
 }
 
-function renderTrendChart(salesTrend, expensesTrend) {
-    const ctx = document.getElementById("trendChart");
+// ---------- Yearly charts + table ----------
+
+function renderYearSalesChart(data) {
+    const ctx = document.getElementById("yearSalesChart");
     if (!ctx) return;
-    if (CHARTS.trend) CHARTS.trend.destroy();
+    if (CHARTS.yearSales) CHARTS.yearSales.destroy();
 
-    CHARTS.trend = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: salesTrend.map((r) => formatPeriod(r.period)),
-            datasets: [
-                {
-                    label: "Sales",
-                    data: salesTrend.map((r) => r.total),
-                    borderColor: "#1976D2",
-                    backgroundColor: "rgba(25,118,210,0.1)",
-                    tension: 0.3,
-                    fill: true,
-                },
-                {
-                    label: "Expenses",
-                    data: expensesTrend.map((r) => r.total),
-                    borderColor: "#EF6C00",
-                    backgroundColor: "rgba(239,108,0,0.1)",
-                    tension: 0.3,
-                    fill: true,
-                },
-            ],
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: "bottom" } },
-        },
-    });
-}
-
-function renderCategoryChart(categories) {
-    const ctx = document.getElementById("categoryChart");
-    if (!ctx) return;
-    if (CHARTS.category) CHARTS.category.destroy();
-
-    const labels = Object.keys(categories);
-    const values = Object.values(categories);
-    const colors = [
-        "#1976D2",
-        "#43A047",
-        "#F9A825",
-        "#C62828",
-        "#6A1B9A",
-        "#00838F",
-        "#EF6C00",
-    ];
-
-    if (!labels.length) {
-        ctx.parentElement.innerHTML = `<p style="color:#888;text-align:center;padding:30px;">No expenses recorded for this month yet.</p>`;
-        return;
-    }
-
-    CHARTS.category = new Chart(ctx, {
-        type: "doughnut",
-        data: { labels, datasets: [{ data: values, backgroundColor: colors }] },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: "bottom" } },
-        },
-    });
-}
-function renderSubcategoryChart(subcategories) {
-    const ctx = document.getElementById("subcategoryChart");
-    if (!ctx) return;
-    if (CHARTS.subcategory) CHARTS.subcategory.destroy();
-
-    const entries = Object.entries(subcategories)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 8);
-
-    if (!entries.length) {
-        ctx.parentElement.innerHTML = `<p style="color:#888;text-align:center;padding:30px;">No expenses recorded for this month yet.</p>`;
-        return;
-    }
-
-    CHARTS.subcategory = new Chart(ctx, {
+    CHARTS.yearSales = new Chart(ctx, {
         type: "bar",
         data: {
-            labels: entries.map((e) => e[0]),
+            labels: data.months.map(monthShortName),
             datasets: [
                 {
-                    label: "Amount",
-                    data: entries.map((e) => e[1]),
+                    label: String(data.year),
+                    data: data.currentSales,
                     backgroundColor: COLORS.primary,
-                    borderRadius: 6,
+                },
+                {
+                    label: String(data.year - 1),
+                    data: data.previousSales,
+                    backgroundColor: "#B0BEC5",
                 },
             ],
         },
         options: {
-            indexAxis: "y",
             responsive: true,
-            plugins: { legend: { display: false } },
-            scales: { x: { beginAtZero: true } },
+            plugins: { legend: { position: "bottom" } },
         },
     });
+}
+
+function renderYearExpensesChart(data) {
+    const ctx = document.getElementById("yearExpensesChart");
+    if (!ctx) return;
+    if (CHARTS.yearExpenses) CHARTS.yearExpenses.destroy();
+
+    CHARTS.yearExpenses = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: data.months.map(monthShortName),
+            datasets: [
+                {
+                    label: String(data.year),
+                    data: data.currentExpenses,
+                    backgroundColor: COLORS.neutral,
+                },
+                {
+                    label: String(data.year - 1),
+                    data: data.previousExpenses,
+                    backgroundColor: "#CFD8DC",
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: "bottom" } },
+        },
+    });
+}
+
+function monthShortName(m) {
+    const names = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+    ];
+    return names[Number(m) - 1];
+}
+
+function renderYearTotalsTable(totals, year) {
+    return `
+        <table class="salesTable yearTotalsTable">
+            <thead><tr><th>Metric</th><th>${year}</th></tr></thead>
+            <tbody>
+                <tr><td>Total Sales</td><td>${money(totals.sales)}</td></tr>
+                <tr><td>Total Expenses</td><td>${money(totals.expenses)}</td></tr>
+                <tr><td>Profit (5%)</td><td>${money(totals.profit)}</td></tr>
+                <tr>
+                    <td>Net Profit</td>
+                    <td style="color:${totals.netProfit >= 0 ? COLORS.success : COLORS.danger};font-weight:bold;">
+                        ${money(totals.netProfit)}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    `;
+}
+
+// ---------- Supplier calendar ----------
+
+const DAY_NAMES = {
+    Sun: "Sunday",
+    Mon: "Monday",
+    Tue: "Tuesday",
+    Wed: "Wednesday",
+    Thu: "Thursday",
+    Fri: "Friday",
+    Sat: "Saturday",
+};
+
+function renderSupplierCalendar(suppliers) {
+    const todayKey = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
+        new Date().getDay()
+    ];
+
+    return `
+        <div class="supplierCalendar">
+            ${suppliers
+                .map(
+                    (s) => `
+                <div class="supplierCell ${s.day === todayKey ? "today" : ""}" data-day="${s.day}">
+                    <div class="supplierDayLabel">${DAY_NAMES[s.day]}</div>
+                    <div class="supplierNoteDisplay" ondblclick="editSupplierNote(this)">
+                        ${s.notes ? s.notes : '<span class="supplierEmpty">— double-click to add —</span>'}
+                    </div>
+                    <input
+                        class="supplierNoteInput"
+                        style="display:none"
+                        value="${s.notes.replace(/"/g, "&quot;")}"
+                        onblur="saveSupplierNoteFromInput(this)"
+                        onkeydown="if(event.key==='Enter') this.blur();"
+                    />
+                </div>
+            `,
+                )
+                .join("")}
+        </div>
+    `;
+}
+
+function editSupplierNote(displayEl) {
+    const cell = displayEl.closest(".supplierCell");
+    const input = cell.querySelector(".supplierNoteInput");
+
+    displayEl.style.display = "none";
+    input.style.display = "block";
+    input.focus();
+    input.select();
+}
+
+function saveSupplierNoteFromInput(inputEl) {
+    const cell = inputEl.closest(".supplierCell");
+    const display = cell.querySelector(".supplierNoteDisplay");
+    const day = cell.dataset.day;
+    const value = inputEl.value.trim();
+
+    display.innerHTML = value
+        ? value
+        : '<span class="supplierEmpty">— double-click to add —</span>';
+    display.style.display = "block";
+    inputEl.style.display = "none";
+
+    gsRun("saveSupplierNote", day, value).catch(showError);
 }

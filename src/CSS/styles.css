@@ -810,3 +810,104 @@ body {
         margin-left: 100%;
     }
 }
+.dashboardSection {
+    margin-bottom: 40px;
+}
+
+.sectionTitle {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e3f2fd;
+}
+
+.chartEmpty {
+    color: #888;
+    text-align: center;
+    padding: 30px;
+}
+
+.yearlyGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+}
+
+.yearTotalsTable td {
+    text-align: left;
+    padding: 10px 8px;
+}
+
+.yearTotalsTable th {
+    text-align: left;
+    padding: 10px 8px;
+}
+
+@media (max-width: 1100px) {
+    .yearlyGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ---------- Supplier calendar ---------- */
+
+.supplierCalendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+}
+
+.supplierCell {
+    background: white;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+    min-height: 90px;
+}
+
+.supplierCell.today {
+    border: 2px solid #1976d2;
+}
+
+.supplierDayLabel {
+    font-size: 12px;
+    font-weight: bold;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.supplierNoteDisplay {
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    line-height: 1.4;
+    min-height: 20px;
+}
+
+.supplierNoteDisplay:hover {
+    color: #1976d2;
+}
+
+.supplierEmpty {
+    color: #bbb;
+    font-style: italic;
+    font-size: 12px;
+}
+
+.supplierNoteInput {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    font-size: 14px;
+    border: 1px solid #1976d2;
+    border-radius: 6px;
+}
+
+@media (max-width: 900px) {
+    .supplierCalendar {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

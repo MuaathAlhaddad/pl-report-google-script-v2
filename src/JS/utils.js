@@ -77,3 +77,12 @@ function showLoading() {
 function hideLoading() {
     document.getElementById("loadingIndicator").style.display = "none";
 }
+
+function gsRun(functionName, ...args) {
+    return new Promise((resolve, reject) => {
+        google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            [functionName](...args);
+    });
+}
