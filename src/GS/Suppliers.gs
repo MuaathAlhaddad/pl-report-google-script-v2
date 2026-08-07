@@ -12,6 +12,8 @@ const DEFAULT_SUPPLIER_ITEMS = {
 
 function getSupplierCalendar() {
     const sheet = getOrCreateSuppliersSheet();
+    seedMissingDefaultSupplierItems(sheet);
+
     const values = sheet.getDataRange().getValues();
 
     const byDay = {};
@@ -61,13 +63,28 @@ function getOrCreateSuppliersSheet() {
     if (!sheet) {
         sheet = ss.insertSheet(CONFIG.SHEETS.SUPPLIERS);
         sheet.appendRow(["Day", "Note", "Done"]);
-
-        SUPPLIER_DAYS.forEach((day) => {
-            (DEFAULT_SUPPLIER_ITEMS[day] || []).forEach((text) => {
-                sheet.appendRow([day, text, false]);
-            });
-        });
     }
 
     return sheet;
+}
+
+// Backfills DEFAULT_SUPPLIER_ITEMS for any day that currently has zero rows
+// in the sheet, leaving days that already have at least one item untouched
+// (whether that item came from the defaults or was added by hand).
+function seedMissingDefaultSupplierItems(sheet) {
+    const values = sheet.getDataRange().getValues();
+
+    const daysWithItems = {};
+    for (let i = 1; i < values.length; i++) {
+        const day = String(values[i][0]).trim();
+        if (day) daysWithItems[day] = true;
+    }
+
+    SUPPLIER_DAYS.forEach((day) => {
+        if (daysWithItems[day]) return;
+
+        (DEFAULT_SUPPLIER_ITEMS[day] || []).forEach((text) => {
+            sheet.appendRow([day, text, false]);
+        });
+    });
 }
