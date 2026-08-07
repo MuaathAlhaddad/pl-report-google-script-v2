@@ -1,6 +1,8 @@
 let CHARTS = {
     yearSales: null,
     yearExpenses: null,
+    hijriYearSales: null,
+    hijriYearExpenses: null,
     month: null,
 };
 
@@ -29,11 +31,12 @@ function loadInsightsDashboard() {
 
     Promise.all([
         gsRun("getYearlyInsights", year),
+        gsRun("getHijriYearlyInsights", APP.period),
         gsRun("getSupplierCalendar"),
         gsRun("getSales", APP.period),
     ])
-        .then(([yearData, suppliers, monthSales]) => {
-            renderInsightsDashboard(yearData, suppliers, monthSales);
+        .then(([yearData, hijriYearData, suppliers, monthSales]) => {
+            renderInsightsDashboard(yearData, hijriYearData, suppliers, monthSales);
             hideLoading();
         })
         .catch((err) => {
@@ -42,7 +45,7 @@ function loadInsightsDashboard() {
         });
 }
 
-function renderInsightsDashboard(yearData, suppliers, monthSales) {
+function renderInsightsDashboard(yearData, hijriYearData, suppliers, monthSales) {
     let html = `
     <div class="pageHeader">
         <div>
@@ -87,6 +90,25 @@ function renderInsightsDashboard(yearData, suppliers, monthSales) {
             </div>
         </div>
     </div>
+
+    <div class="dashboardSection">
+        <div class="sectionTitle">Yearly Overview (Hijri) — ${hijriYearData.year} AH vs ${hijriYearData.year - 1} AH</div>
+
+        <div class="yearlyGrid">
+            <div class="chartCard">
+                <h2>Sales Comparison</h2>
+                <div class="chartCanvasWrap"><canvas id="hijriYearSalesChart"></canvas></div>
+            </div>
+            <div class="chartCard">
+                <h2>Expenses Comparison</h2>
+                <div class="chartCanvasWrap"><canvas id="hijriYearExpensesChart"></canvas></div>
+            </div>
+            <div class="chartCard">
+                <h2>${hijriYearData.year} AH Totals</h2>
+                ${renderYearTotalsTable(hijriYearData.totals, hijriYearData.year + " AH")}
+            </div>
+        </div>
+    </div>
     `;
 
     document.getElementById("dashboardPage").innerHTML = html;
@@ -95,6 +117,8 @@ function renderInsightsDashboard(yearData, suppliers, monthSales) {
         .then(function () {
             renderYearSalesChart(yearData);
             renderYearExpensesChart(yearData);
+            renderHijriYearSalesChart(hijriYearData);
+            renderHijriYearExpensesChart(hijriYearData);
             renderMonthChart(monthSales);
         })
         .catch(function (err) {
@@ -152,30 +176,38 @@ function renderMonthChart(monthSales) {
 
 // ---------- Yearly charts + table ----------
 
-function renderYearSalesChart(data) {
-    const ctx = document.getElementById("yearSalesChart");
+function renderComparisonLineChart(
+    chartKey,
+    canvasId,
+    labels,
+    currentSeries,
+    previousSeries,
+    currentColor,
+    previousColor,
+) {
+    const ctx = document.getElementById(canvasId);
     if (!ctx) return;
-    if (CHARTS.yearSales) CHARTS.yearSales.destroy();
+    if (CHARTS[chartKey]) CHARTS[chartKey].destroy();
 
-    CHARTS.yearSales = new Chart(ctx, {
+    CHARTS[chartKey] = new Chart(ctx, {
         type: "line",
         data: {
-            labels: data.months.map(monthShortName),
+            labels,
             datasets: [
                 {
-                    label: String(data.year),
-                    data: data.currentSales,
-                    borderColor: COLORS.primary,
-                    backgroundColor: COLORS.primary,
+                    label: currentSeries.label,
+                    data: currentSeries.data,
+                    borderColor: currentColor,
+                    backgroundColor: currentColor,
                     tension: 0.3,
                     pointRadius: 3,
                     fill: false,
                 },
                 {
-                    label: String(data.year - 1),
-                    data: data.previousSales,
-                    borderColor: "#B0BEC5",
-                    backgroundColor: "#B0BEC5",
+                    label: previousSeries.label,
+                    data: previousSeries.data,
+                    borderColor: previousColor,
+                    backgroundColor: previousColor,
                     tension: 0.3,
                     pointRadius: 3,
                     fill: false,
@@ -190,42 +222,52 @@ function renderYearSalesChart(data) {
     });
 }
 
-function renderYearExpensesChart(data) {
-    const ctx = document.getElementById("yearExpensesChart");
-    if (!ctx) return;
-    if (CHARTS.yearExpenses) CHARTS.yearExpenses.destroy();
+function renderYearSalesChart(data) {
+    renderComparisonLineChart(
+        "yearSales",
+        "yearSalesChart",
+        data.months.map(monthShortName),
+        { label: String(data.year), data: data.currentSales },
+        { label: String(data.year - 1), data: data.previousSales },
+        COLORS.primary,
+        "#B0BEC5",
+    );
+}
 
-    CHARTS.yearExpenses = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: data.months.map(monthShortName),
-            datasets: [
-                {
-                    label: String(data.year),
-                    data: data.currentExpenses,
-                    borderColor: COLORS.neutral,
-                    backgroundColor: COLORS.neutral,
-                    tension: 0.3,
-                    pointRadius: 3,
-                    fill: false,
-                },
-                {
-                    label: String(data.year - 1),
-                    data: data.previousExpenses,
-                    borderColor: "#CFD8DC",
-                    backgroundColor: "#CFD8DC",
-                    tension: 0.3,
-                    pointRadius: 3,
-                    fill: false,
-                },
-            ],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: "bottom" } },
-        },
-    });
+function renderYearExpensesChart(data) {
+    renderComparisonLineChart(
+        "yearExpenses",
+        "yearExpensesChart",
+        data.months.map(monthShortName),
+        { label: String(data.year), data: data.currentExpenses },
+        { label: String(data.year - 1), data: data.previousExpenses },
+        COLORS.neutral,
+        "#CFD8DC",
+    );
+}
+
+function renderHijriYearSalesChart(data) {
+    renderComparisonLineChart(
+        "hijriYearSales",
+        "hijriYearSalesChart",
+        data.monthNames,
+        { label: data.year + " AH", data: data.currentSales },
+        { label: data.year - 1 + " AH", data: data.previousSales },
+        COLORS.primary,
+        "#B0BEC5",
+    );
+}
+
+function renderHijriYearExpensesChart(data) {
+    renderComparisonLineChart(
+        "hijriYearExpenses",
+        "hijriYearExpensesChart",
+        data.monthNames,
+        { label: data.year + " AH", data: data.currentExpenses },
+        { label: data.year - 1 + " AH", data: data.previousExpenses },
+        COLORS.neutral,
+        "#CFD8DC",
+    );
 }
 
 function monthShortName(m) {

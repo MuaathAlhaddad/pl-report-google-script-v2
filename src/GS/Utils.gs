@@ -79,6 +79,29 @@ function getNextDate() {
     );
 }
 
+// Reuse one formatter across many rows — constructing an Intl.DateTimeFormat
+// is the expensive part, formatToParts() per call is cheap.
+function createHijriFormatter() {
+    return new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {
+        year: "numeric",
+        month: "2-digit",
+        timeZone: Session.getScriptTimeZone(),
+    });
+}
+
+function formatHijriPeriod(formatter, date) {
+    const parts = formatter.formatToParts(date);
+
+    const year = parts.find((p) => p.type === "year").value;
+    const month = parts.find((p) => p.type === "month").value;
+
+    return year + "-" + month;
+}
+
+function getHijriPeriod(date) {
+    return formatHijriPeriod(createHijriFormatter(), date);
+}
+
 function calculatePayments(expression) {
     const exp = (expression || "").trim();
 

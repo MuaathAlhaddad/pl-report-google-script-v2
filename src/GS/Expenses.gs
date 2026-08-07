@@ -46,12 +46,18 @@ function getAllExpenseRows() {
     );
 
     const values = sheet.getDataRange().getValues();
+    const hijriFormatter = createHijriFormatter();
 
     const rows = [];
 
     for (let i = 1; i < values.length; i++) {
         rows.push({
             period: periodToString(values[i][COL.PERIOD]),
+
+            hijriPeriod: formatHijriPeriod(
+                hijriFormatter,
+                new Date(values[i][COL.PERIOD]),
+            ),
 
             category: values[i][COL.CATEGORY],
 

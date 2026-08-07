@@ -34,6 +34,7 @@ function getAllSalesRows() {
 
     const values = sheet.getDataRange().getValues();
     const tz = Session.getScriptTimeZone();
+    const hijriFormatter = createHijriFormatter();
 
     const rows = [];
 
@@ -48,6 +49,8 @@ function getAllSalesRows() {
             date: raw[0],
 
             period: Utilities.formatDate(raw[0], tz, "yyyy-MM"),
+
+            hijriPeriod: formatHijriPeriod(hijriFormatter, raw[0]),
 
             cash: Number(raw[1]) || 0,
 

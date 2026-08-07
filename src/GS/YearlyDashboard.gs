@@ -68,11 +68,13 @@ function getYearTotals(year, salesByPeriod, expensesByPeriod) {
     return { sales, expenses, profit, netProfit: profit - expenses };
 }
 
-function sumFieldByPeriod(rows, field) {
+function sumFieldByPeriod(rows, field, periodField) {
+    periodField = periodField || "period";
+
     const map = {};
 
     rows.forEach((r) => {
-        map[r.period] = (map[r.period] || 0) + r[field];
+        map[r[periodField]] = (map[r[periodField]] || 0) + r[field];
     });
 
     return map;
