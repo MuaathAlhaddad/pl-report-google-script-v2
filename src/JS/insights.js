@@ -1,6 +1,7 @@
 let CHARTS = {
     yearSales: null,
     yearExpenses: null,
+    month: null,
 };
 
 let chartJsPromise = null;
@@ -29,9 +30,10 @@ function loadInsightsDashboard() {
     Promise.all([
         gsRun("getYearlyInsights", year),
         gsRun("getSupplierCalendar"),
+        gsRun("getSales", APP.period),
     ])
-        .then(([yearData, suppliers]) => {
-            renderInsightsDashboard(yearData, suppliers);
+        .then(([yearData, suppliers, monthSales]) => {
+            renderInsightsDashboard(yearData, suppliers, monthSales);
             hideLoading();
         })
         .catch((err) => {
@@ -40,7 +42,7 @@ function loadInsightsDashboard() {
         });
 }
 
-function renderInsightsDashboard(yearData, suppliers) {
+function renderInsightsDashboard(yearData, suppliers, monthSales) {
     let html = `
     <div class="pageHeader">
         <div>
@@ -51,16 +53,28 @@ function renderInsightsDashboard(yearData, suppliers) {
     </div>
 
     <div class="dashboardSection">
+        <div class="sectionTitle">${formatPeriod(APP.period)} — Daily Sales vs Expenses</div>
+
+        <div class="chartCard chartCardWide">
+            ${
+                monthSales.length
+                    ? `<div class="chartCanvasWrap"><canvas id="monthChart"></canvas></div>`
+                    : `<div class="chartEmpty">No sales recorded yet for ${formatPeriod(APP.period)}.</div>`
+            }
+        </div>
+    </div>
+
+    <div class="dashboardSection">
         <div class="sectionTitle">Yearly Overview — ${yearData.year} vs ${yearData.year - 1}</div>
 
         <div class="yearlyGrid">
             <div class="chartCard">
                 <h2>Sales Comparison</h2>
-                <canvas id="yearSalesChart"></canvas>
+                <div class="chartCanvasWrap"><canvas id="yearSalesChart"></canvas></div>
             </div>
             <div class="chartCard">
                 <h2>Expenses Comparison</h2>
-                <canvas id="yearExpensesChart"></canvas>
+                <div class="chartCanvasWrap"><canvas id="yearExpensesChart"></canvas></div>
             </div>
             <div class="chartCard">
                 <h2>${yearData.year} Totals</h2>
@@ -81,6 +95,7 @@ function renderInsightsDashboard(yearData, suppliers) {
         .then(function () {
             renderYearSalesChart(yearData);
             renderYearExpensesChart(yearData);
+            renderMonthChart(monthSales);
         })
         .catch(function (err) {
             document
@@ -90,6 +105,41 @@ function renderInsightsDashboard(yearData, suppliers) {
                     `<p style="color:${COLORS.danger};text-align:center;">Charts failed to load: ${err.message}</p>`,
                 );
         });
+}
+
+// ---------- Current month chart ----------
+
+function renderMonthChart(monthSales) {
+    const ctx = document.getElementById("monthChart");
+    if (!ctx) return;
+    if (CHARTS.month) CHARTS.month.destroy();
+
+    CHARTS.month = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: monthSales.map((r) => r.date.slice(0, 2)),
+            datasets: [
+                {
+                    label: "Sales",
+                    data: monthSales.map((r) => r.totalSales),
+                    backgroundColor: COLORS.primary,
+                },
+                {
+                    label: "Expenses",
+                    data: monthSales.map(
+                        (r) => r.dailyExpense + r.otherExpenses,
+                    ),
+                    backgroundColor: COLORS.neutral,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: "bottom" } },
+            scales: { x: { title: { display: true, text: "Day" } } },
+        },
+    });
 }
 
 // ---------- Yearly charts + table ----------
@@ -118,6 +168,7 @@ function renderYearSalesChart(data) {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: { legend: { position: "bottom" } },
         },
     });
@@ -147,6 +198,7 @@ function renderYearExpensesChart(data) {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: { legend: { position: "bottom" } },
         },
     });

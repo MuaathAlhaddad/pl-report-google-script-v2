@@ -11,7 +11,7 @@ body {
 
     margin: auto;
 
-    padding: 25px;
+    padding: 18px 25px;
 }
 
 .pageHeader {
@@ -521,9 +521,9 @@ body {
 
     align-items: center;
 
-    margin-bottom: 24px;
+    margin-bottom: 16px;
 
-    padding-bottom: 18px;
+    padding-bottom: 12px;
 
     border-bottom: 1px solid #e5e7eb;
 }
@@ -560,7 +560,7 @@ body {
 .tabs {
     display: flex;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
 .tab {
@@ -579,7 +579,7 @@ body {
 }
 
 .toolbar {
-    margin-bottom: 20px;
+    margin-bottom: 14px;
 }
 
 .chartsGrid {
@@ -594,13 +594,13 @@ body {
 .chartCard {
     background: white;
     border-radius: 15px;
-    padding: 20px;
+    padding: 16px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
 }
 
 .chartCard h2 {
-    margin: 0 0 15px;
-    font-size: 16px;
+    margin: 0 0 10px;
+    font-size: 15px;
     color: #1976d2;
 }
 
@@ -811,15 +811,15 @@ body {
     }
 }
 .dashboardSection {
-    margin-bottom: 40px;
+    margin-bottom: 20px;
 }
 
 .sectionTitle {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     color: #1f2937;
-    margin-bottom: 14px;
-    padding-bottom: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
     border-bottom: 2px solid #e3f2fd;
 }
 
@@ -829,25 +829,48 @@ body {
     padding: 30px;
 }
 
+.chartCanvasWrap {
+    position: relative;
+    height: 165px;
+}
+
+.chartCardWide .chartCanvasWrap {
+    height: 185px;
+}
+
 .yearlyGrid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 20px;
+    gap: 16px;
 }
 
 .yearTotalsTable td {
     text-align: left;
-    padding: 10px 8px;
+    padding: 6px 8px;
+    font-size: 14px;
 }
 
 .yearTotalsTable th {
     text-align: left;
-    padding: 10px 8px;
+    padding: 6px 8px;
+    font-size: 14px;
 }
 
 @media (max-width: 1100px) {
     .yearlyGrid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .yearlyGrid > *:nth-child(3) {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 640px) {
+    .yearlyGrid {
         grid-template-columns: 1fr;
+    }
+    .yearlyGrid > *:nth-child(3) {
+        grid-column: auto;
     }
 }
 
@@ -862,9 +885,9 @@ body {
 .supplierCell {
     background: white;
     border-radius: 12px;
-    padding: 14px;
+    padding: 12px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
-    min-height: 90px;
+    min-height: 76px;
 }
 
 .supplierCell.today {
