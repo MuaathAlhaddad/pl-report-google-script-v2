@@ -888,6 +888,9 @@ body {
     padding: 12px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
     min-height: 76px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .supplierCell.today {
@@ -899,19 +902,52 @@ body {
     font-weight: bold;
     color: #888;
     text-transform: uppercase;
-    margin-bottom: 8px;
 }
 
-.supplierNoteDisplay {
-    font-size: 14px;
+.supplierItems {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.supplierItem {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 13px;
     color: #333;
-    cursor: pointer;
-    line-height: 1.4;
-    min-height: 20px;
 }
 
-.supplierNoteDisplay:hover {
-    color: #1976d2;
+.supplierItem input[type="checkbox"] {
+    flex: none;
+    margin-top: 2px;
+    cursor: pointer;
+}
+
+.supplierItemText {
+    flex: 1;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.supplierItem.done .supplierItemText {
+    text-decoration: line-through;
+    color: #aaa;
+}
+
+.supplierItemDelete {
+    flex: none;
+    border: none;
+    background: none;
+    color: #ccc;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+}
+
+.supplierItemDelete:hover {
+    color: #c62828;
 }
 
 .supplierEmpty {
@@ -920,13 +956,20 @@ body {
     font-size: 12px;
 }
 
-.supplierNoteInput {
+.supplierAddInput {
     width: 100%;
     box-sizing: border-box;
     padding: 6px 8px;
-    font-size: 14px;
-    border: 1px solid #1976d2;
+    font-size: 12px;
+    border: 1px dashed #ddd;
     border-radius: 6px;
+    background: transparent;
+}
+
+.supplierAddInput:focus {
+    outline: none;
+    border-color: #1976d2;
+    border-style: solid;
 }
 
 @media (max-width: 900px) {

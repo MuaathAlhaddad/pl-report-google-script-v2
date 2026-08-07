@@ -1,30 +1,57 @@
 const SUPPLIER_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+const DEFAULT_SUPPLIER_ITEMS = {
+    Sun: ["الحلبي"],
+    Mon: ["المطرفي"],
+    Tue: [],
+    Wed: ["عكاشة"],
+    Thu: ["رهيب", "بلوبيرد", "الوسام"],
+    Fri: ["النخبة"],
+    Sat: ["صادق"],
+};
+
 function getSupplierCalendar() {
     const sheet = getOrCreateSuppliersSheet();
     const values = sheet.getDataRange().getValues();
 
-    const map = {};
+    const byDay = {};
+    SUPPLIER_DAYS.forEach((day) => (byDay[day] = []));
+
     for (let i = 1; i < values.length; i++) {
-        map[String(values[i][0]).trim()] = String(values[i][1] || "").trim();
+        const day = String(values[i][0]).trim();
+        if (!byDay[day]) continue;
+
+        byDay[day].push({
+            row: i + 1,
+            text: String(values[i][1] || "").trim(),
+            done: values[i][2] === true,
+        });
     }
 
-    return SUPPLIER_DAYS.map((day) => ({ day, notes: map[day] || "" }));
+    return SUPPLIER_DAYS.map((day) => ({ day, items: byDay[day] }));
 }
 
-function saveSupplierNote(day, notes) {
-    const sheet = getOrCreateSuppliersSheet();
-    const values = sheet.getDataRange().getValues();
+function addSupplierItem(day, text) {
+    text = String(text || "").trim();
 
-    for (let i = 1; i < values.length; i++) {
-        if (String(values[i][0]).trim() === day) {
-            sheet.getRange(i + 1, 2).setValue(notes);
-            return true;
-        }
+    if (text) {
+        const sheet = getOrCreateSuppliersSheet();
+        sheet.appendRow([day, text, false]);
     }
 
-    sheet.appendRow([day, notes]);
+    return getSupplierCalendar();
+}
+
+function toggleSupplierItem(row, done) {
+    const sheet = getOrCreateSuppliersSheet();
+    sheet.getRange(row, 3).setValue(!!done);
     return true;
+}
+
+function deleteSupplierItem(row) {
+    const sheet = getOrCreateSuppliersSheet();
+    sheet.deleteRow(row);
+    return getSupplierCalendar();
 }
 
 function getOrCreateSuppliersSheet() {
@@ -33,17 +60,13 @@ function getOrCreateSuppliersSheet() {
 
     if (!sheet) {
         sheet = ss.insertSheet(CONFIG.SHEETS.SUPPLIERS);
-        sheet.appendRow(["Day", "Notes"]);
+        sheet.appendRow(["Day", "Note", "Done"]);
 
-        [
-            ["Sun", "الحلبي"],
-            ["Mon", "المطرفي"],
-            ["Tue", ""],
-            ["Wed", "عكاشة"],
-            ["Thu", "رهيب + بلوبيرد + الوسام"],
-            ["Fri", "النخبة"],
-            ["Sat", "صادق"],
-        ].forEach((row) => sheet.appendRow(row));
+        SUPPLIER_DAYS.forEach((day) => {
+            (DEFAULT_SUPPLIER_ITEMS[day] || []).forEach((text) => {
+                sheet.appendRow([day, text, false]);
+            });
+        });
     }
 
     return sheet;

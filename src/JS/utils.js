@@ -9,6 +9,12 @@ const COLORS = {
     danger: "#C62828", // profit-negative only
 };
 
+function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
+}
+
 function getValue(id) {
     const el = document.getElementById(id);
 

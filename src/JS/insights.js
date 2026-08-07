@@ -115,21 +115,29 @@ function renderMonthChart(monthSales) {
     if (CHARTS.month) CHARTS.month.destroy();
 
     CHARTS.month = new Chart(ctx, {
-        type: "bar",
+        type: "line",
         data: {
             labels: monthSales.map((r) => r.date.slice(0, 2)),
             datasets: [
                 {
                     label: "Sales",
                     data: monthSales.map((r) => r.totalSales),
+                    borderColor: COLORS.primary,
                     backgroundColor: COLORS.primary,
+                    tension: 0.3,
+                    pointRadius: 2,
+                    fill: false,
                 },
                 {
                     label: "Expenses",
                     data: monthSales.map(
                         (r) => r.dailyExpense + r.otherExpenses,
                     ),
+                    borderColor: COLORS.neutral,
                     backgroundColor: COLORS.neutral,
+                    tension: 0.3,
+                    pointRadius: 2,
+                    fill: false,
                 },
             ],
         },
@@ -150,19 +158,27 @@ function renderYearSalesChart(data) {
     if (CHARTS.yearSales) CHARTS.yearSales.destroy();
 
     CHARTS.yearSales = new Chart(ctx, {
-        type: "bar",
+        type: "line",
         data: {
             labels: data.months.map(monthShortName),
             datasets: [
                 {
                     label: String(data.year),
                     data: data.currentSales,
+                    borderColor: COLORS.primary,
                     backgroundColor: COLORS.primary,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    fill: false,
                 },
                 {
                     label: String(data.year - 1),
                     data: data.previousSales,
+                    borderColor: "#B0BEC5",
                     backgroundColor: "#B0BEC5",
+                    tension: 0.3,
+                    pointRadius: 3,
+                    fill: false,
                 },
             ],
         },
@@ -180,19 +196,27 @@ function renderYearExpensesChart(data) {
     if (CHARTS.yearExpenses) CHARTS.yearExpenses.destroy();
 
     CHARTS.yearExpenses = new Chart(ctx, {
-        type: "bar",
+        type: "line",
         data: {
             labels: data.months.map(monthShortName),
             datasets: [
                 {
                     label: String(data.year),
                     data: data.currentExpenses,
+                    borderColor: COLORS.neutral,
                     backgroundColor: COLORS.neutral,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    fill: false,
                 },
                 {
                     label: String(data.year - 1),
                     data: data.previousExpenses,
+                    borderColor: "#CFD8DC",
                     backgroundColor: "#CFD8DC",
+                    tension: 0.3,
+                    pointRadius: 3,
+                    fill: false,
                 },
             ],
         },
@@ -259,21 +283,44 @@ function renderSupplierCalendar(suppliers) {
     ];
 
     return `
-        <div class="supplierCalendar">
+        <div class="supplierCalendar" id="supplierCalendar">
             ${suppliers
                 .map(
                     (s) => `
                 <div class="supplierCell ${s.day === todayKey ? "today" : ""}" data-day="${s.day}">
                     <div class="supplierDayLabel">${DAY_NAMES[s.day]}</div>
-                    <div class="supplierNoteDisplay" ondblclick="editSupplierNote(this)">
-                        ${s.notes ? s.notes : '<span class="supplierEmpty">— double-click to add —</span>'}
+
+                    <div class="supplierItems">
+                        ${
+                            s.items.length
+                                ? s.items
+                                      .map(
+                                          (item) => `
+                            <div class="supplierItem ${item.done ? "done" : ""}">
+                                <input
+                                    type="checkbox"
+                                    ${item.done ? "checked" : ""}
+                                    onchange="toggleSupplierItem(this, ${item.row})"
+                                />
+                                <span class="supplierItemText">${escapeHtml(item.text)}</span>
+                                <button
+                                    class="supplierItemDelete"
+                                    onclick="deleteSupplierItem(${item.row})"
+                                    title="Remove"
+                                >×</button>
+                            </div>
+                        `,
+                                      )
+                                      .join("")
+                                : `<div class="supplierEmpty">Nothing yet</div>`
+                        }
                     </div>
+
                     <input
-                        class="supplierNoteInput"
-                        style="display:none"
-                        value="${s.notes.replace(/"/g, "&quot;")}"
-                        onblur="saveSupplierNoteFromInput(this)"
-                        onkeydown="if(event.key==='Enter') this.blur();"
+                        type="text"
+                        class="supplierAddInput"
+                        placeholder="+ add note / todo"
+                        onkeydown="if(event.key==='Enter') addSupplierItem(this, '${s.day}');"
                     />
                 </div>
             `,
@@ -283,27 +330,36 @@ function renderSupplierCalendar(suppliers) {
     `;
 }
 
-function editSupplierNote(displayEl) {
-    const cell = displayEl.closest(".supplierCell");
-    const input = cell.querySelector(".supplierNoteInput");
-
-    displayEl.style.display = "none";
-    input.style.display = "block";
-    input.focus();
-    input.select();
+function replaceSupplierCalendar(suppliers) {
+    document.getElementById("supplierCalendar").outerHTML =
+        renderSupplierCalendar(suppliers);
 }
 
-function saveSupplierNoteFromInput(inputEl) {
-    const cell = inputEl.closest(".supplierCell");
-    const display = cell.querySelector(".supplierNoteDisplay");
-    const day = cell.dataset.day;
-    const value = inputEl.value.trim();
+function toggleSupplierItem(checkbox, row) {
+    checkbox.closest(".supplierItem").classList.toggle("done", checkbox.checked);
 
-    display.innerHTML = value
-        ? value
-        : '<span class="supplierEmpty">— double-click to add —</span>';
-    display.style.display = "block";
-    inputEl.style.display = "none";
+    gsRun("toggleSupplierItem", row, checkbox.checked).catch((err) => {
+        checkbox.checked = !checkbox.checked;
+        checkbox
+            .closest(".supplierItem")
+            .classList.toggle("done", checkbox.checked);
+        showError(err);
+    });
+}
 
-    gsRun("saveSupplierNote", day, value).catch(showError);
+function addSupplierItem(input, day) {
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.disabled = true;
+
+    gsRun("addSupplierItem", day, text)
+        .then(replaceSupplierCalendar)
+        .catch(showError);
+}
+
+function deleteSupplierItem(row) {
+    gsRun("deleteSupplierItem", row)
+        .then(replaceSupplierCalendar)
+        .catch(showError);
 }
