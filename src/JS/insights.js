@@ -53,6 +53,11 @@ function renderInsightsDashboard(yearData, suppliers, monthSales) {
     </div>
 
     <div class="dashboardSection">
+        <div class="sectionTitle">This Week's Supplier Payments</div>
+        ${renderSupplierCalendar(suppliers)}
+    </div>
+
+    <div class="dashboardSection">
         <div class="sectionTitle">${formatPeriod(APP.period)} — Daily Sales vs Expenses</div>
 
         <div class="chartCard chartCardWide">
@@ -81,11 +86,6 @@ function renderInsightsDashboard(yearData, suppliers, monthSales) {
                 ${renderYearTotalsTable(yearData.totals, yearData.year)}
             </div>
         </div>
-    </div>
-
-    <div class="dashboardSection">
-        <div class="sectionTitle">This Week's Supplier Payments</div>
-        ${renderSupplierCalendar(suppliers)}
     </div>
     `;
 

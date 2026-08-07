@@ -1,5 +1,6 @@
 function getDashboard(period) {
-    const summary = getSummary(period);
+    const sales = getSales(period);
+    const summary = summarizeSales(sales);
 
     const expenses = getExpenses(period);
 
@@ -18,67 +19,70 @@ function getDashboard(period) {
 
         netProfit: profit - expenses,
 
-        sales: getSales(period),
+        sales,
     };
 }
 
-function getSales(period) {
+// Reads the Sales sheet exactly once. Callers that need multiple periods
+// (e.g. a whole year) should read this once and filter/aggregate in memory
+// instead of calling getSales() per period, since each sheet read is a slow
+// round trip.
+function getAllSalesRows() {
     const sheet = SpreadsheetApp.getActive().getSheetByName(
         CONFIG.SHEETS.SALES,
     );
 
     const values = sheet.getDataRange().getValues();
+    const tz = Session.getScriptTimeZone();
 
-    if (values.length <= 1) return [];
-
-    const sales = [];
+    const rows = [];
 
     for (let i = 1; i < values.length; i++) {
-        const row = values[i];
+        const raw = values[i];
 
-        if (!(row[0] instanceof Date)) continue;
+        if (!(raw[0] instanceof Date)) continue;
 
-        const date = new Date(row[0]);
-
-        const rowPeriod = Utilities.formatDate(
-            date,
-            Session.getScriptTimeZone(),
-            "yyyy-MM",
-        );
-
-        if (rowPeriod != period) continue;
-
-        sales.push({
+        rows.push({
             row: i + 1,
 
-            date: formatDate(date),
+            date: raw[0],
 
-            cash: Number(row[1]) || 0,
+            period: Utilities.formatDate(raw[0], tz, "yyyy-MM"),
 
-            creditInvoices: Number(row[2]) || 0,
+            cash: Number(raw[1]) || 0,
 
-            payments: Number(row[4]) || 0,
+            creditInvoices: Number(raw[2]) || 0,
 
-            dailyExpense: Number(row[5]) || 0,
+            payments: Number(raw[4]) || 0,
 
-            otherExpenses: Number(row[6]) || 0,
+            dailyExpense: Number(raw[5]) || 0,
 
-            customerPayments: Math.abs(Number(row[7])) || 0,
+            otherExpenses: Number(raw[6]) || 0,
 
-            cashWithdrawal: Number(row[8]) || 0,
+            customerPayments: Math.abs(Number(raw[7])) || 0,
 
-            cashDeposit: Math.abs(Number(row[9])) || 0,
+            cashWithdrawal: Number(raw[8]) || 0,
 
-            totalSales: Number(row[11]) || 0,
+            cashDeposit: Math.abs(Number(raw[9])) || 0,
+
+            totalSales: Number(raw[11]) || 0,
         });
     }
 
-    return sales;
+    return rows;
+}
+
+function getSales(period) {
+    return getAllSalesRows()
+        .filter((r) => r.period === period)
+        .map((r) => Object.assign({}, r, { date: formatDate(r.date) }));
 }
 
 function getSummary(period) {
-    const sales = getSales(period);
+    return summarizeSales(getSales(period));
+}
 
+function summarizeSales(sales) {
     let monthSales = 0;
     let bestDay = 0;
 
@@ -95,35 +99,4 @@ function getSummary(period) {
 
         bestDay,
     };
-}
-
-function getInsights(period) {
-    const months = getLastMonths(period, 6);
-
-    const salesTrend = months.map((m) => ({ period: m, total: getSummary(m).monthSales }));
-    const expensesTrend = months.map((m) => ({ period: m, total: getExpenses(m) }));
-
-    return {
-        salesTrend,
-        expensesTrend,
-        expenseCategories: getExpenseCategories(period),
-        expenseSubcategories: getExpenseSubcategories(period),
-        summary: getSummary(period),
-        expenses: getExpenses(period),
-        goal: getGoal(period),
-    };
-}
-
-function getLastMonths(period, count) {
-    const [year, month] = period.split("-").map(Number);
-    const months = [];
-
-    for (let i = count - 1; i >= 0; i--) {
-        const d = new Date(year, month - 1 - i, 1);
-        months.push(
-            Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM"),
-        );
-    }
-
-    return months;
 }

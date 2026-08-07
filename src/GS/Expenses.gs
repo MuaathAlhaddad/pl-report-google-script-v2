@@ -36,67 +36,72 @@ function saveExpenses(data) {
     }
 }
 
-function getExpenses(period) {
-    const values = getExpenseRows();
+// Reads the Expenses sheet exactly once. Callers that need several periods
+// or several breakdowns of the same period should read this once and derive
+// everything from it in memory instead of re-reading per period/breakdown,
+// since each sheet read is a slow round trip.
+function getAllExpenseRows() {
+    const sheet = SpreadsheetApp.getActive().getSheetByName(
+        CONFIG.SHEETS.EXPENSES,
+    );
 
-    let total = 0;
+    const values = sheet.getDataRange().getValues();
+
+    const rows = [];
 
     for (let i = 1; i < values.length; i++) {
-        if (periodToString(values[i][COL.PERIOD]) !== period) continue;
+        rows.push({
+            period: periodToString(values[i][COL.PERIOD]),
 
-        total += Number(values[i][COL.AMOUNT]) || 0;
+            category: values[i][COL.CATEGORY],
+
+            subcategory: values[i][COL.SUBCATEGORY],
+
+            account: values[i][COL.ACCOUNT],
+
+            amount: Number(values[i][COL.AMOUNT]) || 0,
+        });
     }
 
-    return total;
+    return rows;
+}
+
+function getExpenses(period) {
+    return sumExpenseRows(getRowsForPeriod(getAllExpenseRows(), period));
 }
 
 function getExpenseDashboard(period) {
+    const rows = getRowsForPeriod(getAllExpenseRows(), period);
+
     return {
-        total: getExpenses(period),
+        total: sumExpenseRows(rows),
 
-        categories: getExpenseCategories(period),
+        categories: categorizeExpenseRows(rows),
 
-        details: getExpenseDetails(period),
+        details: toExpenseDetails(rows),
 
-        exists: expensesExist(period),
+        exists: rows.length > 0,
     };
 }
 
 function getExpenseCategories(period) {
-    const values = getExpenseRows();
-
-    const result = {};
-
-    for (let i = 1; i < values.length; i++) {
-        if (periodToString(values[i][COL.PERIOD]) != period) continue;
-
-        const category = values[i][COL.CATEGORY];
-
-        result[category] =
-            (result[category] || 0) + Number(values[i][COL.AMOUNT] || 0);
-    }
-
-    return result;
+    return categorizeExpenseRows(getRowsForPeriod(getAllExpenseRows(), period));
 }
 
 function getExpenseDetails(period) {
-    const values = getExpenseRows();
+    return toExpenseDetails(getRowsForPeriod(getAllExpenseRows(), period));
+}
 
-    return values
+function getExpenseSubcategories(period) {
+    const result = {};
 
-        .slice(1)
+    getRowsForPeriod(getAllExpenseRows(), period).forEach((r) => {
+        const key = r.category + " – " + r.subcategory;
 
-        .filter((r) => periodToString(r[0]) == period)
+        result[key] = (result[key] || 0) + r.amount;
+    });
 
-        .map((r) => ({
-            category: r[1],
-
-            subcategory: r[2],
-
-            account: r[3],
-
-            amount: Number(r[4]),
-        }));
+    return result;
 }
 
 function periodToString(date) {
@@ -118,69 +123,53 @@ function getPreviousPeriod(period) {
 function getPreviousMonthExpenses(period) {
     const previous = getPreviousPeriod(period);
 
-    const values = getExpenseRows();
-
-    const expenses = [];
-
-    for (let i = 1; i < values.length; i++) {
-        if (periodToString(values[i][COL.PERIOD]) != previous) continue;
-
-        expenses.push({
-            category: values[i][COL.CATEGORY],
-
-            subcategory: values[i][COL.SUBCATEGORY],
-
-            account: values[i][COL.ACCOUNT],
-
-            amount: Number(values[i][COL.AMOUNT]) || 0,
-        });
-    }
-
-    return expenses;
+    return toExpenseDetails(getRowsForPeriod(getAllExpenseRows(), previous));
 }
 
 function expensesExist(period) {
-    const values = getExpenseRows();
-
-    for (let i = 1; i < values.length; i++) {
-        if (periodToString(values[i][COL.PERIOD]) === period) {
-            return true;
-        }
-    }
-
-    return false;
+    return getRowsForPeriod(getAllExpenseRows(), period).length > 0;
 }
 
 function getExpenseWizard(period) {
+    const rows = getAllExpenseRows();
+
     return {
         setup: getExpenseSetup(),
 
-        values: getPreviousMonthExpenses(period),
+        values: toExpenseDetails(
+            getRowsForPeriod(rows, getPreviousPeriod(period)),
+        ),
 
-        exists: expensesExist(period),
+        exists: getRowsForPeriod(rows, period).length > 0,
     };
 }
 
-function getExpenseRows() {
-    const sheet = SpreadsheetApp.getActive().getSheetByName(
-        CONFIG.SHEETS.EXPENSES,
-    );
-
-    return sheet.getDataRange().getValues();
+function getRowsForPeriod(rows, period) {
+    return rows.filter((r) => r.period === period);
 }
-function getExpenseSubcategories(period) {
-    const values = getExpenseRows();
+
+function sumExpenseRows(rows) {
+    return rows.reduce((total, r) => total + r.amount, 0);
+}
+
+function categorizeExpenseRows(rows) {
     const result = {};
 
-    for (let i = 1; i < values.length; i++) {
-        if (periodToString(values[i][COL.PERIOD]) != period) continue;
-
-        const category = values[i][COL.CATEGORY];
-        const subcategory = values[i][COL.SUBCATEGORY];
-        const key = category + " – " + subcategory;
-
-        result[key] = (result[key] || 0) + Number(values[i][COL.AMOUNT] || 0);
-    }
+    rows.forEach((r) => {
+        result[r.category] = (result[r.category] || 0) + r.amount;
+    });
 
     return result;
+}
+
+function toExpenseDetails(rows) {
+    return rows.map((r) => ({
+        category: r.category,
+
+        subcategory: r.subcategory,
+
+        account: r.account,
+
+        amount: r.amount,
+    }));
 }
