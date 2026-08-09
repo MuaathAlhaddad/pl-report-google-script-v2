@@ -9,7 +9,9 @@ function getNewReportData() {
         otherExpenses: 0,
         customerPayments: 0,
         cashWithdrawal: 0,
+        withdrawalNote: "",
         cashDeposit: 0,
+        depositNote: "",
     };
 }
 
@@ -85,7 +87,7 @@ function saveReport(data) {
 
     const row = sheet.getLastRow() + 1;
 
-    sheet.getRange(row, 1, 1, 12).setValues([
+    sheet.getRange(row, 1, 1, 14).setValues([
         [
             new Date(data.date), // A Date
             Number(data.cash) || 0, // B Closing Cash
@@ -99,6 +101,8 @@ function saveReport(data) {
             -(Number(data.cashDeposit) || 0), // J Cash Deposit
             -(Number(data.startingCash) || 0), // K Starting Cash
             totalSales, // L Total Sales
+            data.withdrawalNote || "", // M Withdrawal Note
+            data.depositNote || "", // N Deposit Note
         ],
     ]);
 

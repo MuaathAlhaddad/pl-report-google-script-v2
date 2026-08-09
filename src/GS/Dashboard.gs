@@ -69,6 +69,10 @@ function getAllSalesRows() {
             cashDeposit: Math.abs(Number(raw[9])) || 0,
 
             totalSales: Number(raw[11]) || 0,
+
+            withdrawalNote: String(raw[12] || "").trim(),
+
+            depositNote: String(raw[13] || "").trim(),
         });
     }
 

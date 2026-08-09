@@ -190,9 +190,9 @@ function renderSalesTable(rows) {
 
 <td>${money(r.customerPayments)}</td>
 
-<td>${money(r.cashWithdrawal)}</td>
+<td${r.withdrawalNote ? ` class="hasNote" title="${escapeAttr(r.withdrawalNote)}"` : ""}>${money(r.cashWithdrawal)}${r.withdrawalNote ? " 📝" : ""}</td>
 
-<td>${money(r.cashDeposit)}</td>
+<td${r.depositNote ? ` class="hasNote" title="${escapeAttr(r.depositNote)}"` : ""}>${money(r.cashDeposit)}${r.depositNote ? " 📝" : ""}</td>
 
 <td>${money(r.totalSales)}</td>
 

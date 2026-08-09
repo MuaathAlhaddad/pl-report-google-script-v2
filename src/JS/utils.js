@@ -15,6 +15,12 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+// escapeHtml() alone isn't safe inside a quoted HTML attribute (it doesn't
+// escape "), so use this when interpolating into e.g. title="...".
+function escapeAttr(str) {
+    return escapeHtml(str).replace(/"/g, "&quot;");
+}
+
 function getValue(id) {
     const el = document.getElementById(id);
 

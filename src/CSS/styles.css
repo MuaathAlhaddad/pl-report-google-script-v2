@@ -92,6 +92,10 @@ body {
     background: #fafafa;
 }
 
+.salesTable .hasNote {
+    cursor: help;
+}
+
 .newReportRow {
     cursor: pointer;
 
