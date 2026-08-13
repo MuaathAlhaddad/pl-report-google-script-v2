@@ -1,17 +1,24 @@
 function getNewReportData() {
+    const date = getNextDate();
+
+    // Auto-fill what Daftra already knows; supplier Payments and the cash
+    // fields stay manual since Daftra has no clean data for those.
+    const daftra = getDaftraDailyTotals(date);
+
     return {
-        date: getNextDate(),
+        date,
         startingCash: getStartingCash(),
         cash: 0,
-        creditInvoices: 0,
+        creditInvoices: daftra.creditInvoices,
         payments: "",
         dailyExpense: 285,
-        otherExpenses: 0,
-        customerPayments: 0,
+        otherExpenses: daftra.otherExpenses,
+        customerPayments: daftra.customerPayments,
         cashWithdrawal: 0,
         withdrawalNote: "",
         cashDeposit: 0,
         depositNote: "",
+        daftraErrors: daftra.errors,
     };
 }
 

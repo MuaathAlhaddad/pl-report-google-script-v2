@@ -36,6 +36,13 @@ function initializeSalesForm() {
         .withSuccessHandler(function (data) {
             fillForm(data);
             hideLoading();
+
+            if (data.daftraErrors && data.daftraErrors.length) {
+                alert(
+                    "Some fields couldn't auto-fill from Daftra, please check them:\n\n" +
+                        data.daftraErrors.join("\n"),
+                );
+            }
         })
         .withFailureHandler(function (err) {
             hideLoading();
