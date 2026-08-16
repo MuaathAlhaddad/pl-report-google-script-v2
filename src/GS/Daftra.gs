@@ -89,6 +89,16 @@ function daftraExtractList_(payload) {
     return [];
 }
 
+// Confirmed against a real account (Aug 2026): each item in the "data"
+// array comes back wrapped one level deeper, e.g.
+// { "Invoice": { payment_status: "0", summary_total: "10", ... } } rather
+// than the fields directly on the item. Unwrap defensively -- if a future
+// response isn't wrapped, `item[key]` is just undefined and we fall back
+// to the item itself.
+function daftraUnwrap_(item, key) {
+    return item && item[key] ? item[key] : item;
+}
+
 // Sum of unpaid invoices dated `dateStr` -- since every customer-debt
 // invoice you create uses the "due invoice" service and nothing else goes
 // out unpaid, "unpaid invoices today" IS the Credit Invoices total.
@@ -99,7 +109,9 @@ function getDaftraCreditInvoices(dateStr) {
         limit: 100,
     });
 
-    const invoices = daftraExtractList_(payload);
+    const invoices = daftraExtractList_(payload).map((item) =>
+        daftraUnwrap_(item, "Invoice"),
+    );
 
     return invoices
         .filter((inv) => {
@@ -123,10 +135,9 @@ function getDaftraCustomerPayments(dateStr) {
         limit: 100,
     });
 
-    return daftraExtractList_(payload).reduce(
-        (sum, p) => sum + (Number(p.amount) || 0),
-        0,
-    );
+    return daftraExtractList_(payload)
+        .map((item) => daftraUnwrap_(item, "ClientPayment"))
+        .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 }
 
 // Sum of expenses recorded in Daftra on `dateStr` -- your "Other Expenses".
@@ -139,10 +150,9 @@ function getDaftraOtherExpenses(dateStr) {
         limit: 100,
     });
 
-    return daftraExtractList_(payload).reduce(
-        (sum, e) => sum + (Number(e.amount) || 0),
-        0,
-    );
+    return daftraExtractList_(payload)
+        .map((item) => daftraUnwrap_(item, "Expense"))
+        .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 }
 
 // Fetches all three Daftra-backed figures for one date. A failure on any
