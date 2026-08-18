@@ -26,7 +26,10 @@ function initialize() {
         else loadInsightsDashboard();
     };
 
-    loadInsightsDashboard();
+    // Sales form is what you actually need open every night -- land there
+    // directly instead of on the dashboard. "Cancel" on the form still
+    // takes you to the dashboard via showDashboard(), which is unchanged.
+    showSalesForm();
 }
 
 function initializeSalesForm() {
