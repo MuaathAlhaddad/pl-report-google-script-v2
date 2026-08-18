@@ -13,27 +13,89 @@
             <button type="button" onclick="copyDateText(this)">📋</button>
         </div>
 
-        <label>Closing Cash</label>
+        <div class="sectionTitle">Cash</div>
 
-        <input type="number" id="cash" value="0" />
+        <div class="formRowGroup">
+            <div class="formFieldGroup">
+                <label>Starting Cash</label>
+                <input type="number" id="startingCash" readonly />
+            </div>
 
-        <label>Credit Invoices</label>
+            <div class="formFieldGroup">
+                <label>Closing Cash</label>
+                <input type="number" id="cash" value="0" />
+            </div>
+        </div>
 
-        <div class="editableField" data-field="creditInvoices">
-            <div class="fieldDisplay" ondblclick="editField('creditInvoices')">
+        <div class="sectionTitle">Daftra Numbers</div>
+
+        <div class="formRowGroup">
+            <div class="formFieldGroup">
+                <label>Credit Invoices</label>
+
+                <div class="editableField" data-field="creditInvoices">
+                    <div
+                        class="fieldDisplay"
+                        ondblclick="editField('creditInvoices')"
+                    >
+                        <span class="fieldValue">0</span>
+                        <span class="editHint">✎ edit</span>
+                    </div>
+
+                    <input
+                        type="number"
+                        id="creditInvoices"
+                        value="0"
+                        style="display: none"
+                        onblur="doneEditingField('creditInvoices')"
+                        onkeydown="if (event.key === 'Enter') { event.preventDefault(); this.blur(); }"
+                    />
+                </div>
+            </div>
+
+            <div class="formFieldGroup">
+                <label>Customer Payments</label>
+
+                <div class="editableField" data-field="customerPayments">
+                    <div
+                        class="fieldDisplay"
+                        ondblclick="editField('customerPayments')"
+                    >
+                        <span class="fieldValue">0</span>
+                        <span class="editHint">✎ edit</span>
+                    </div>
+
+                    <input
+                        type="number"
+                        id="customerPayments"
+                        value="0"
+                        style="display: none"
+                        onblur="doneEditingField('customerPayments')"
+                        onkeydown="if (event.key === 'Enter') { event.preventDefault(); this.blur(); }"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <label>Other Expenses</label>
+
+        <div class="editableField" data-field="otherExpenses">
+            <div class="fieldDisplay" ondblclick="editField('otherExpenses')">
                 <span class="fieldValue">0</span>
                 <span class="editHint">✎ from Daftra — double-click to edit</span>
             </div>
 
             <input
                 type="number"
-                id="creditInvoices"
+                id="otherExpenses"
                 value="0"
                 style="display: none"
-                onblur="doneEditingField('creditInvoices')"
+                onblur="doneEditingField('otherExpenses')"
                 onkeydown="if (event.key === 'Enter') { event.preventDefault(); this.blur(); }"
             />
         </div>
+
+        <div class="sectionTitle">Supplier Payments</div>
 
         <label>Payments</label>
 
@@ -50,7 +112,7 @@
 
         <div id="paymentsInfo"></div>
 
-        <label>Daily Expense</label>
+        <div class="sectionTitle">Daily Expense</div>
 
         <div class="expense-cards">
             <div
@@ -80,83 +142,53 @@
 
         <input type="hidden" id="dailyExpense" value="285" />
 
-        <label>Other Expenses</label>
+        <div class="sectionTitle">Cash Movements</div>
 
-        <div class="editableField" data-field="otherExpenses">
-            <div class="fieldDisplay" ondblclick="editField('otherExpenses')">
-                <span class="fieldValue">0</span>
-                <span class="editHint">✎ from Daftra — double-click to edit</span>
+        <div class="formRowGroup">
+            <div class="formFieldGroup">
+                <label>Cash Withdrawal</label>
+
+                <input
+                    type="number"
+                    id="cashWithdrawal"
+                    value="0"
+                    oninput="toggleNoteField('cashWithdrawal', 'withdrawalNoteGroup')"
+                />
             </div>
 
-            <input
-                type="number"
-                id="otherExpenses"
-                value="0"
-                style="display: none"
-                onblur="doneEditingField('otherExpenses')"
-                onkeydown="if (event.key === 'Enter') { event.preventDefault(); this.blur(); }"
-            />
+            <div class="formFieldGroup">
+                <label>Cash Deposit</label>
+
+                <input
+                    type="number"
+                    id="cashDeposit"
+                    value="0"
+                    oninput="toggleNoteField('cashDeposit', 'depositNoteGroup')"
+                />
+            </div>
         </div>
 
-        <label>Customer Payments</label>
+        <div class="formRowGroup">
+            <div class="formFieldGroup" id="withdrawalNoteGroup" style="display: none">
+                <label>Withdrawal Note</label>
 
-        <div class="editableField" data-field="customerPayments">
-            <div class="fieldDisplay" ondblclick="editField('customerPayments')">
-                <span class="fieldValue">0</span>
-                <span class="editHint">✎ from Daftra — double-click to edit</span>
+                <input
+                    type="text"
+                    id="withdrawalNote"
+                    placeholder="Where did the money go? (optional)"
+                />
             </div>
 
-            <input
-                type="number"
-                id="customerPayments"
-                value="0"
-                style="display: none"
-                onblur="doneEditingField('customerPayments')"
-                onkeydown="if (event.key === 'Enter') { event.preventDefault(); this.blur(); }"
-            />
+            <div class="formFieldGroup" id="depositNoteGroup" style="display: none">
+                <label>Deposit Note</label>
+
+                <input
+                    type="text"
+                    id="depositNote"
+                    placeholder="Where did the money come from? (optional)"
+                />
+            </div>
         </div>
-
-        <label>Cash Withdrawal</label>
-
-        <input
-            type="number"
-            id="cashWithdrawal"
-            value="0"
-            oninput="toggleNoteField('cashWithdrawal', 'withdrawalNoteGroup')"
-        />
-
-        <div id="withdrawalNoteGroup" style="display: none">
-            <label>Withdrawal Note</label>
-
-            <input
-                type="text"
-                id="withdrawalNote"
-                placeholder="Where did the money go? (optional)"
-            />
-        </div>
-
-        <label>Cash Deposit</label>
-
-        <input
-            type="number"
-            id="cashDeposit"
-            value="0"
-            oninput="toggleNoteField('cashDeposit', 'depositNoteGroup')"
-        />
-
-        <div id="depositNoteGroup" style="display: none">
-            <label>Deposit Note</label>
-
-            <input
-                type="text"
-                id="depositNote"
-                placeholder="Where did the money come from? (optional)"
-            />
-        </div>
-
-        <label>Starting Cash</label>
-
-        <input type="number" id="startingCash" readonly />
 
         <div class="buttonBar">
             <button type="button" onclick="showDashboard()">Cancel</button>

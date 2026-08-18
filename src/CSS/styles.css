@@ -196,6 +196,14 @@ body {
     border-color: #1976d2;
 }
 
+.formCard input[readonly] {
+    background: #f5f7fa;
+
+    color: #555;
+
+    cursor: not-allowed;
+}
+
 .formCard button {
     padding: 12px 20px;
 
@@ -232,6 +240,44 @@ body {
 
 .backButton:hover {
     background: #616161;
+}
+
+/* ---------- Sales form sections & paired short fields ---------- */
+
+.formCard .sectionTitle {
+    margin-top: 30px;
+
+    margin-bottom: 4px;
+
+    padding-bottom: 4px;
+}
+
+.formRowGroup {
+    display: flex;
+
+    gap: 15px;
+
+    align-items: flex-start;
+
+    margin-top: 15px;
+}
+
+.formRowGroup .formFieldGroup {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.formRowGroup label {
+    margin-top: 0;
+}
+
+@media (max-width: 640px) {
+    .formRowGroup {
+        flex-direction: column;
+
+        gap: 0;
+    }
 }
 
 /* ---------- Editable display fields (Daftra auto-filled) ---------- */
