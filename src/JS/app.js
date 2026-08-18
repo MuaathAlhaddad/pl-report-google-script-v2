@@ -51,6 +51,11 @@ function initializeSalesForm() {
         .getNewReportData();
 }
 
+// Fields that come pre-filled from Daftra: shown as read-only text by
+// default (see .editableField in sales-form.html) so the form reads clean,
+// with the real <input> revealed via double-click for a quick correction.
+const AUTO_FILL_FIELDS = ["creditInvoices", "otherExpenses", "customerPayments"];
+
 function fillForm(data) {
     document.getElementById("date").value = data.date ?? "";
 
@@ -73,11 +78,17 @@ function fillForm(data) {
     document.getElementById("customerPayments").value =
         data.customerPayments ?? 0;
 
+    AUTO_FILL_FIELDS.forEach(showFieldDisplay);
+
     document.getElementById("cashWithdrawal").value = data.cashWithdrawal ?? 0;
+
+    toggleNoteField("cashWithdrawal", "withdrawalNoteGroup");
 
     document.getElementById("withdrawalNote").value = data.withdrawalNote ?? "";
 
     document.getElementById("cashDeposit").value = data.cashDeposit ?? 0;
+
+    toggleNoteField("cashDeposit", "depositNoteGroup");
 
     document.getElementById("depositNote").value = data.depositNote ?? "";
 
@@ -93,6 +104,53 @@ function fillForm(data) {
     });
 
     updatePayments();
+}
+
+// --- Editable display fields (Credit Invoices, Other Expenses, Customer
+// Payments) -- shown as plain text pulled from Daftra; double-click swaps
+// in the real number input so you can correct it if it's ever wrong. ---
+
+function fieldWrapper(id) {
+    return document.querySelector(`.editableField[data-field="${id}"]`);
+}
+
+function showFieldDisplay(id) {
+    const wrapper = fieldWrapper(id);
+    if (!wrapper) return;
+
+    const input = document.getElementById(id);
+
+    wrapper.querySelector(".fieldValue").textContent = money(
+        Number(input.value) || 0,
+    );
+
+    wrapper.querySelector(".fieldDisplay").style.display = "flex";
+    input.style.display = "none";
+}
+
+function editField(id) {
+    const wrapper = fieldWrapper(id);
+    if (!wrapper) return;
+
+    wrapper.querySelector(".fieldDisplay").style.display = "none";
+
+    const input = document.getElementById(id);
+    input.style.display = "block";
+    input.focus();
+    input.select();
+}
+
+function doneEditingField(id) {
+    showFieldDisplay(id);
+}
+
+// --- Withdrawal/Deposit notes -- only worth asking "where did it go /
+// come from" once there's actually an amount to explain. ---
+
+function toggleNoteField(amountId, noteGroupId) {
+    const amount = Number(document.getElementById(amountId).value) || 0;
+    document.getElementById(noteGroupId).style.display =
+        amount !== 0 ? "block" : "none";
 }
 
 function selectExpense(card, value) {
