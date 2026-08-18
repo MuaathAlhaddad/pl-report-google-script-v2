@@ -127,7 +127,10 @@ function getDaftraCreditInvoices(dateStr) {
         .reduce((sum, inv) => sum + (Number(inv.summary_total) || 0), 0);
 }
 
-// Sum of customer payments received on `dateStr`.
+// Sum of customer payments received on `dateStr`. Deliberately not
+// filtered by invoice_id -- this must include BOTH a payment applied to a
+// specific invoice AND a payment made straight to the client's account
+// balance (invoice_id: null), since both are real cash received today.
 function getDaftraCustomerPayments(dateStr) {
     const payload = daftraGet_("client_payments.json", {
         date_from: dateStr,
