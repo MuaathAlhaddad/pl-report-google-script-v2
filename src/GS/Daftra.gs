@@ -78,6 +78,7 @@ function daftraExtractList_(payload) {
             "Invoice",
             "Expense",
             "ClientPayment",
+            "InvoicePayment",
             "items",
         ];
 
@@ -127,11 +128,32 @@ function getDaftraCreditInvoices(dateStr) {
         .reduce((sum, inv) => sum + (Number(inv.summary_total) || 0), 0);
 }
 
-// Sum of customer payments received on `dateStr`. Deliberately not
-// filtered by invoice_id -- this must include BOTH a payment applied to a
-// specific invoice AND a payment made straight to the client's account
-// balance (invoice_id: null), since both are real cash received today.
-function getDaftraCustomerPayments(dateStr) {
+// Daftra stores payments in TWO separate resources depending on how they
+// were entered -- confirmed against a real account (15/08/2026: client_payments
+// alone gave 493 vs the real Payments Report total of 661):
+//   - invoice_payments.json ("InvoicePayment") -- a payment applied to a
+//     specific invoice.
+//   - client_payments.json ("ClientPayment") -- a payment credited straight
+//     to a client's account balance, not tied to any invoice.
+// The Daftra "Payments Report" you check by hand adds both together, so we
+// do too.
+
+// Sum of payments applied to a specific invoice on `dateStr`.
+function getDaftraInvoicePayments(dateStr) {
+    const payload = daftraGet_("invoice_payments.json", {
+        date_from: dateStr,
+        date_to: dateStr,
+        limit: 100,
+    });
+
+    return daftraExtractList_(payload)
+        .map((item) => daftraUnwrap_(item, "InvoicePayment"))
+        .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+}
+
+// Sum of payments credited straight to a client's account balance (not
+// tied to any invoice) on `dateStr`.
+function getDaftraClientAccountPayments(dateStr) {
     const payload = daftraGet_("client_payments.json", {
         date_from: dateStr,
         date_to: dateStr,
@@ -141,6 +163,15 @@ function getDaftraCustomerPayments(dateStr) {
     return daftraExtractList_(payload)
         .map((item) => daftraUnwrap_(item, "ClientPayment"))
         .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+}
+
+// Total customer payments received on `dateStr` -- invoice-tied plus
+// direct-to-account, matching what the Daftra Payments Report shows.
+function getDaftraCustomerPayments(dateStr) {
+    return (
+        getDaftraInvoicePayments(dateStr) +
+        getDaftraClientAccountPayments(dateStr)
+    );
 }
 
 // Sum of expenses recorded in Daftra on `dateStr` -- your "Other Expenses".
@@ -195,11 +226,10 @@ function getDaftraDailyTotals(dateStr) {
 // Daftra responses before trusting the auto-filled form. Change TEST_DATE
 // to a day you know has real invoices/payments/expenses in Daftra.
 function testDaftraConnection() {
-    const TEST_DATE = Utilities.formatDate(
-        new Date(),
-        Session.getScriptTimeZone(),
-        "yyyy-MM-dd",
-    );
+    // Pinned to the date you already checked by hand (Payments Report
+    // total: 661.00) so this run is a direct comparison. Change back to
+    // today's date, or any other date, once you've confirmed it matches.
+    const TEST_DATE = "2026-08-15";
 
     Logger.log("Testing Daftra connection for " + TEST_DATE);
 
@@ -207,6 +237,19 @@ function testDaftraConnection() {
     Logger.log(
         JSON.stringify(
             daftraGet_("invoices.json", {
+                date_from: TEST_DATE,
+                date_to: TEST_DATE,
+                limit: 5,
+            }),
+            null,
+            2,
+        ),
+    );
+
+    Logger.log("--- Raw invoice_payments response ---");
+    Logger.log(
+        JSON.stringify(
+            daftraGet_("invoice_payments.json", {
                 date_from: TEST_DATE,
                 date_to: TEST_DATE,
                 limit: 5,
