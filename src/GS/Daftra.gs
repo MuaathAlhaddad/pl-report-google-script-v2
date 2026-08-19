@@ -79,6 +79,7 @@ function daftraExtractList_(payload) {
             "Expense",
             "ClientPayment",
             "InvoicePayment",
+            "Income",
             "items",
         ];
 
@@ -189,15 +190,32 @@ function getDaftraOtherExpenses(dateStr) {
         .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 }
 
-// Fetches all three Daftra-backed figures for one date. A failure on any
-// one of them (network hiccup, bad field name) doesn't block the others --
-// it falls back to 0 for that figure and reports what broke so the form
+// Sum of "Incomes" recorded in Daftra on `dateStr` -- confirmed against
+// your account's Incomes report (owner/incomes/report) that this is where
+// "incoming Cash Receipt" money lives, i.e. cash added into the drawer
+// that isn't a sale -- your "Cash Deposit" field.
+function getDaftraCashDeposit(dateStr) {
+    const payload = daftraGet_("incomes.json", {
+        date_from: dateStr,
+        date_to: dateStr,
+        limit: 100,
+    });
+
+    return daftraExtractList_(payload)
+        .map((item) => daftraUnwrap_(item, "Income"))
+        .reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+}
+
+// Fetches all Daftra-backed figures for one date. A failure on any one of
+// them (network hiccup, bad field name) doesn't block the others -- it
+// falls back to 0 for that figure and reports what broke so the form
 // still opens and you can fill that one in by hand.
 function getDaftraDailyTotals(dateStr) {
     const result = {
         creditInvoices: 0,
         customerPayments: 0,
         otherExpenses: 0,
+        cashDeposit: 0,
         errors: [],
     };
 
@@ -219,6 +237,12 @@ function getDaftraDailyTotals(dateStr) {
         result.errors.push("Other Expenses: " + e.message);
     }
 
+    try {
+        result.cashDeposit = getDaftraCashDeposit(dateStr);
+    } catch (e) {
+        result.errors.push("Cash Deposit: " + e.message);
+    }
+
     return result;
 }
 
@@ -226,10 +250,13 @@ function getDaftraDailyTotals(dateStr) {
 // Daftra responses before trusting the auto-filled form. Change TEST_DATE
 // to a day you know has real invoices/payments/expenses in Daftra.
 function testDaftraConnection() {
-    // Pinned to the date you already checked by hand (Payments Report
-    // total: 661.00) so this run is a direct comparison. Change back to
-    // today's date, or any other date, once you've confirmed it matches.
-    const TEST_DATE = "2026-08-15";
+    // Edit this to any date you want to spot-check against Daftra's own
+    // reports (e.g. "2026-08-20"). Defaults to today.
+    const TEST_DATE = Utilities.formatDate(
+        new Date(),
+        Session.getScriptTimeZone(),
+        "yyyy-MM-dd",
+    );
 
     Logger.log("Testing Daftra connection for " + TEST_DATE);
 
@@ -276,6 +303,19 @@ function testDaftraConnection() {
     Logger.log(
         JSON.stringify(
             daftraGet_("expenses.json", {
+                date_from: TEST_DATE,
+                date_to: TEST_DATE,
+                limit: 5,
+            }),
+            null,
+            2,
+        ),
+    );
+
+    Logger.log("--- Raw incomes response ---");
+    Logger.log(
+        JSON.stringify(
+            daftraGet_("incomes.json", {
                 date_from: TEST_DATE,
                 date_to: TEST_DATE,
                 limit: 5,
