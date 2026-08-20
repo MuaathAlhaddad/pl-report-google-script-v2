@@ -1,10 +1,14 @@
 // ============================================================
 // Debts page -- lets employees (signed in with a name + PIN, since the
 // team is on personal Gmail rather than a shared Workspace domain) see
-// who currently owes money and log follow-up status/notes. The numbers
-// themselves come from Daftra via the "Debts Snapshot" sheet
-// (refreshDebtsSnapshot() in Daftra.gs); this file just renders/edits
-// that sheet through the server functions in Debts.gs.
+// who currently owes money and log follow-up status/notes.
+//
+// Two kinds of debt, both stored in the same "Debts Snapshot" sheet:
+//   - Long debts:  pulled live from Daftra (already-invoiced credit).
+//     Read-only here -- refreshDebtsSnapshot() (Daftra.gs) is the only
+//     thing that creates/updates these rows.
+//   - Short debts: entered by hand from the separate notebook that never
+//     becomes a Daftra invoice. Added/edited directly from this page.
 //
 // The logged-in employee's name + PIN are kept in this browser's
 // localStorage so they don't have to log in every visit -- see the note
@@ -101,8 +105,15 @@ function showDebtsMain() {
     document.getElementById("debtsMain").style.display = "block";
     document.getElementById("debtsWhoAmI").textContent = DEBTS.employee.name;
 
-    document.getElementById("debtsRefreshButton").style.display =
-        DEBTS.employee.role === "edit" ? "inline-block" : "none";
+    const canEdit = DEBTS.employee.role === "edit";
+
+    document.getElementById("debtsRefreshButton").style.display = canEdit
+        ? "inline-block"
+        : "none";
+
+    document.getElementById("debtsAddShortToggle").style.display = canEdit
+        ? "inline-block"
+        : "none";
 
     fetchDebts();
 }
@@ -116,10 +127,17 @@ function fetchDebts() {
             DEBTS.data = data;
 
             document.getElementById("debtsSnapshotTime").textContent =
-                data.snapshotTime ? "Updated " + data.snapshotTime : "";
+                data.snapshotTime ? "Daftra last pulled " + data.snapshotTime : "";
 
             document.getElementById("debtsTotal").textContent = money(data.total);
-            document.getElementById("debtsCount").textContent = data.debts.length;
+
+            document.getElementById("debtsLongTotal").textContent = money(
+                data.long.reduce((sum, d) => sum + d.amount, 0),
+            );
+
+            document.getElementById("debtsShortTotal").textContent = money(
+                data.short.reduce((sum, d) => sum + d.amount, 0),
+            );
 
             renderDebts();
         })
@@ -154,13 +172,31 @@ function renderDebts() {
     if (!DEBTS.data) return;
 
     const search = document.getElementById("debtsSearch").value.trim().toLowerCase();
+    const canEdit = DEBTS.employee.role === "edit";
+    const statuses = DEBTS.data.statuses || [];
 
-    const debts = DEBTS.data.debts.filter((d) =>
-        d.clientName.toLowerCase().includes(search),
+    const matches = (d) => d.clientName.toLowerCase().includes(search);
+
+    renderDebtsSection(
+        DEBTS.data.long.filter(matches),
+        "debtsLongList",
+        "debtsLongEmpty",
+        canEdit,
+        statuses,
     );
 
-    const list = document.getElementById("debtsList");
-    const empty = document.getElementById("debtsEmpty");
+    renderDebtsSection(
+        DEBTS.data.short.filter(matches),
+        "debtsShortList",
+        "debtsShortEmpty",
+        canEdit,
+        statuses,
+    );
+}
+
+function renderDebtsSection(debts, listId, emptyId, canEdit, statuses) {
+    const list = document.getElementById(listId);
+    const empty = document.getElementById(emptyId);
 
     if (debts.length === 0) {
         list.innerHTML = "";
@@ -169,10 +205,6 @@ function renderDebts() {
     }
 
     empty.style.display = "none";
-
-    const canEdit = DEBTS.employee.role === "edit";
-    const statuses = DEBTS.data.statuses || [];
-
     list.innerHTML = debts.map((d) => debtRowHtml(d, canEdit, statuses)).join("");
 }
 
@@ -228,7 +260,7 @@ function toggleDebtRow(header) {
     const isOpen = body.style.display !== "none";
 
     body.style.display = isOpen ? "none" : "block";
-    chevron.style.transform = isOpen ? "rotate(90deg)" : "rotate(0deg)";
+    chevron.style.transform = isOpen ? "rotate(0deg)" : "rotate(90deg)";
 }
 
 function saveDebt(clientId) {
@@ -251,5 +283,49 @@ function saveDebt(clientId) {
         .catch(function (err) {
             hideLoading();
             showError(err);
+        });
+}
+
+// --- Add a short debt (from the separate notebook) ---
+
+function toggleAddShortForm() {
+    const form = document.getElementById("debtsAddShortForm");
+    const isOpen = form.style.display !== "none";
+
+    form.style.display = isOpen ? "none" : "block";
+
+    if (!isOpen) {
+        document.getElementById("debtsNewName").value = "";
+        document.getElementById("debtsNewAmount").value = "";
+        document.getElementById("debtsNewNotes").value = "";
+        document.getElementById("debtsAddShortError").style.display = "none";
+    }
+}
+
+function submitShortDebt() {
+    const name = document.getElementById("debtsNewName").value.trim();
+    const amount = document.getElementById("debtsNewAmount").value;
+    const notes = document.getElementById("debtsNewNotes").value.trim();
+    const errorBox = document.getElementById("debtsAddShortError");
+
+    errorBox.style.display = "none";
+    showLoading();
+
+    gsRun(
+        "addShortDebt",
+        DEBTS.employee.name,
+        DEBTS.employee.pin,
+        name,
+        amount,
+        notes,
+    )
+        .then(function () {
+            toggleAddShortForm();
+            fetchDebts();
+        })
+        .catch(function (err) {
+            hideLoading();
+            errorBox.textContent = err.message || err;
+            errorBox.style.display = "block";
         });
 }

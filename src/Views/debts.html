@@ -23,14 +23,18 @@
 
     <!-- Main list: shown once logged in. -->
     <div id="debtsMain" style="display: none">
-        <div class="summaryGrid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 16px">
+        <div class="summaryGrid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 16px">
             <div class="summaryCard">
                 <div class="title">Total Owed</div>
                 <div class="value" id="debtsTotal">0</div>
             </div>
             <div class="summaryCard">
-                <div class="title">Clients With Debts</div>
-                <div class="value" id="debtsCount">0</div>
+                <div class="title">Long Debts (Daftra)</div>
+                <div class="value" id="debtsLongTotal">0</div>
+            </div>
+            <div class="summaryCard">
+                <div class="title">Short Debts (notebook)</div>
+                <div class="value" id="debtsShortTotal">0</div>
             </div>
         </div>
 
@@ -38,15 +42,63 @@
             <input
                 type="text"
                 id="debtsSearch"
-                placeholder="Search by client name..."
+                placeholder="Search by name..."
                 oninput="renderDebts()"
             />
         </div>
 
-        <div id="debtsList" class="expenseAccordion"></div>
+        <!-- Long debts: pulled live from Daftra, read-only source of truth. -->
+        <div class="sectionTitle" style="margin-top: 0">
+            Long Debts <span style="font-weight: normal; color: #888; font-size: 13px">— already in Daftra</span>
+        </div>
 
-        <div id="debtsEmpty" class="emptyState" style="display: none">
-            No outstanding debts 🎉
+        <div id="debtsLongList" class="expenseAccordion"></div>
+
+        <div id="debtsLongEmpty" class="emptyState" style="display: none">
+            No long debts outstanding 🎉
+        </div>
+
+        <!-- Short debts: manually entered, from the separate notebook that never
+             makes it into Daftra. -->
+        <div class="sectionTitle">
+            Short Debts <span style="font-weight: normal; color: #888; font-size: 13px">— from the notebook</span>
+        </div>
+
+        <button
+            type="button"
+            id="debtsAddShortToggle"
+            class="backButton"
+            style="display: none; margin-bottom: 12px"
+            onclick="toggleAddShortForm()"
+        >
+            ➕ Add Short Debt
+        </button>
+
+        <div id="debtsAddShortForm" class="formCard" style="display: none; max-width: 480px; padding: 20px; margin: 0 0 16px">
+            <label>Who owes it</label>
+            <input type="text" id="debtsNewName" placeholder="Debtor's name" />
+
+            <label>Amount</label>
+            <input type="number" id="debtsNewAmount" placeholder="0" />
+
+            <label>Notes (optional)</label>
+            <textarea
+                id="debtsNewNotes"
+                rows="2"
+                style="width: 100%; box-sizing: border-box; font-family: inherit; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px"
+            ></textarea>
+
+            <div id="debtsAddShortError" style="display: none; color: #c62828; font-size: 13px; margin-top: 6px"></div>
+
+            <button type="button" class="saveButton" onclick="submitShortDebt()">
+                💾 Save Debt
+            </button>
+        </div>
+
+        <div id="debtsShortList" class="expenseAccordion"></div>
+
+        <div id="debtsShortEmpty" class="emptyState" style="display: none">
+            No short debts recorded yet
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px">

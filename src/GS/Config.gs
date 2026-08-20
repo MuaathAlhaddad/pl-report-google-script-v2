@@ -18,6 +18,7 @@ const CONFIG = {
         "Promised to Pay",
         "Overdue",
         "Disputed",
+        "Paid",
     ],
 
     PROFIT_MARGIN: 0.05,

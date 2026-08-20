@@ -303,13 +303,20 @@ function getDaftraOutstandingDebts() {
     return Object.values(balances).sort((a, b) => b.amount - a.amount);
 }
 
-// Columns in the "Debts Snapshot" sheet. Columns E-G (Status/Notes/Updated
-// By/Updated At) are follow-up info an employee enters in the Debts page --
-// this function must preserve them on every refresh, only overwriting the
-// Daftra-sourced columns (Amount Owed, Snapshot Time).
+// Columns in the "Debts Snapshot" sheet. Two kinds of row share it:
+//   Type "Long"  -- pulled from Daftra by this function. Status/Notes/
+//                   Updated By/Updated At are follow-up info an employee
+//                   enters in the Debts page and must be preserved across
+//                   refreshes; only Amount Owed/Snapshot Time get
+//                   overwritten from fresh Daftra data.
+//   Type "Short" -- entered by hand (addShortDebt() in Debts.gs) for debts
+//                   from the separate notebook that never becomes a
+//                   Daftra invoice. This function never touches those
+//                   rows -- they're carried forward as-is on every run.
 const DEBTS_HEADERS = [
     "Client",
     "Client ID",
+    "Type",
     "Amount Owed",
     "Status",
     "Notes",
@@ -322,9 +329,10 @@ const DEBTS_HEADERS = [
 // Snapshot" sheet -- run this from the editor (function dropdown ->
 // refreshDebtsSnapshot -> Run) any time you want up-to-date numbers, or
 // tap "Refresh from Daftra" in the Debts page (employees with edit access
-// only). Any Status/Notes an employee already entered for a client is kept;
-// only the amount and snapshot time get overwritten. A client who no
-// longer owes anything (fully paid) drops off the list.
+// only). Only rewrites "Long" (Daftra) rows: any Status/Notes an employee
+// already entered is kept, only the amount and snapshot time change, and
+// a client who no longer owes anything (fully paid) drops off the list.
+// "Short" rows (the manual notebook debts) are left completely untouched.
 function refreshDebtsSnapshot() {
     const debts = getDaftraOutstandingDebts();
 
@@ -336,9 +344,21 @@ function refreshDebtsSnapshot() {
     }
 
     const lastRow = sheet.getLastRow();
-    const existing = {}; // clientId -> { status, notes, updatedBy, updatedAt }
+    const existingLong = {}; // clientId -> { status, notes, updatedBy, updatedAt }
+    const shortRows = []; // carried forward untouched
 
-    if (lastRow > 1) {
+    // Only trust what's already in the sheet if its header row matches the
+    // current column layout -- e.g. right after adding the Type column,
+    // an older snapshot's columns would otherwise get misread into the
+    // wrong fields. If it doesn't match, start clean for this one run.
+    const currentHeaders =
+        lastRow >= 1
+            ? sheet.getRange(1, 1, 1, DEBTS_HEADERS.length).getValues()[0]
+            : [];
+    const headerMatches =
+        JSON.stringify(currentHeaders) === JSON.stringify(DEBTS_HEADERS);
+
+    if (headerMatches && lastRow > 1) {
         sheet
             .getRange(2, 1, lastRow - 1, DEBTS_HEADERS.length)
             .getValues()
@@ -346,11 +366,16 @@ function refreshDebtsSnapshot() {
                 const clientId = row[1];
                 if (clientId === "" || clientId == null) return;
 
-                existing[clientId] = {
-                    status: row[3] || "",
-                    notes: row[4] || "",
-                    updatedBy: row[5] || "",
-                    updatedAt: row[6] || "",
+                if (row[2] === "Short") {
+                    shortRows.push(row);
+                    return;
+                }
+
+                existingLong[clientId] = {
+                    status: row[4] || "",
+                    notes: row[5] || "",
+                    updatedBy: row[6] || "",
+                    updatedAt: row[7] || "",
                 };
             });
     }
@@ -364,23 +389,37 @@ function refreshDebtsSnapshot() {
         .setValues([DEBTS_HEADERS])
         .setFontWeight("bold");
 
-    if (debts.length > 0) {
-        const rows = debts.map((d) => {
-            const prev = existing[d.clientId] || {};
+    const longRows = debts.map((d) => {
+        const prev = existingLong[d.clientId] || {};
 
-            return [
-                d.clientName,
-                d.clientId,
-                d.amount,
-                prev.status || CONFIG.DEBT_STATUSES[0],
-                prev.notes || "",
-                prev.updatedBy || "",
-                prev.updatedAt || "",
-                now,
-            ];
-        });
+        // Daftra is the source of truth for whether a Long debt still
+        // exists at all -- if it's showing up here, it's genuinely still
+        // unpaid. A stale "Paid" tag from before (mismarked, or the
+        // amount changed again after being paid down) would otherwise
+        // hide a real debt from the list forever, which is exactly the
+        // "debts getting lost" problem this page exists to prevent.
+        const status =
+            prev.status && prev.status !== "Paid"
+                ? prev.status
+                : CONFIG.DEBT_STATUSES[0];
 
-        sheet.getRange(2, 1, rows.length, DEBTS_HEADERS.length).setValues(rows);
+        return [
+            d.clientName,
+            d.clientId,
+            "Long",
+            d.amount,
+            status,
+            prev.notes || "",
+            prev.updatedBy || "",
+            prev.updatedAt || "",
+            now,
+        ];
+    });
+
+    const allRows = longRows.concat(shortRows);
+
+    if (allRows.length > 0) {
+        sheet.getRange(2, 1, allRows.length, DEBTS_HEADERS.length).setValues(allRows);
     }
 
     sheet.autoResizeColumns(1, DEBTS_HEADERS.length);
@@ -389,10 +428,11 @@ function refreshDebtsSnapshot() {
     const total = debts.reduce((sum, d) => sum + d.amount, 0);
 
     Logger.log(
-        `Debts snapshot done: ${debts.length} clients owe a total of ${total}.`,
+        `Debts snapshot done: ${debts.length} long debts totaling ${total} ` +
+            `(plus ${shortRows.length} short debts carried forward unchanged).`,
     );
 
-    return { count: debts.length, total };
+    return { longCount: debts.length, longTotal: total, shortCount: shortRows.length };
 }
 
 // Run manually from the editor to sanity-check credentials and see the raw
