@@ -1,0 +1,73 @@
+<div id="debtsPage" style="display: none">
+    <div class="pageHeader">
+        <h1>🧾 Debts</h1>
+        <div class="pagePeriod" id="debtsSnapshotTime"></div>
+    </div>
+
+    <!-- Login gate: shown until this device has a saved employee. -->
+    <div id="debtsLogin" class="formCard" style="display: none; max-width: 380px">
+        <div class="sectionTitle" style="margin-top: 0">Who's this?</div>
+
+        <label>Your name</label>
+        <select id="debtsLoginName"></select>
+
+        <label>PIN</label>
+        <input type="password" id="debtsLoginPin" inputmode="numeric" placeholder="••••" />
+
+        <div id="debtsLoginError" style="display: none; color: #c62828; font-size: 13px; margin-top: 6px"></div>
+
+        <button type="button" class="saveButton" style="margin-top: 16px" onclick="debtsLogin()">
+            Log In
+        </button>
+    </div>
+
+    <!-- Main list: shown once logged in. -->
+    <div id="debtsMain" style="display: none">
+        <div class="summaryGrid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 16px">
+            <div class="summaryCard">
+                <div class="title">Total Owed</div>
+                <div class="value" id="debtsTotal">0</div>
+            </div>
+            <div class="summaryCard">
+                <div class="title">Clients With Debts</div>
+                <div class="value" id="debtsCount">0</div>
+            </div>
+        </div>
+
+        <div class="inputRow" style="margin-bottom: 14px">
+            <input
+                type="text"
+                id="debtsSearch"
+                placeholder="Search by client name..."
+                oninput="renderDebts()"
+            />
+        </div>
+
+        <div id="debtsList" class="expenseAccordion"></div>
+
+        <div id="debtsEmpty" class="emptyState" style="display: none">
+            No outstanding debts 🎉
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px">
+            <button
+                type="button"
+                class="backButton"
+                style="margin-bottom: 0"
+                onclick="debtsLogout()"
+            >
+                🚪 Log Out (<span id="debtsWhoAmI"></span>)
+            </button>
+
+            <button
+                type="button"
+                id="debtsRefreshButton"
+                class="saveButton"
+                style="display: none; width: auto; margin-top: 0"
+                onclick="refreshDebts()"
+            >
+                🔄 Refresh from Daftra
+            </button>
+        </div>
+    </div>
+</div>

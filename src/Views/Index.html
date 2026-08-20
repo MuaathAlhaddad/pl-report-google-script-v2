@@ -13,13 +13,15 @@
         <div id="app">
             <div id="mainPage" style="display: none">
                 <?!= include("Views/dashboard.html"); ?> <?!=
-                include("Views/expenses.html"); ?>
+                include("Views/expenses.html"); ?> <?!=
+                include("Views/debts.html"); ?>
             </div>
             <?!= include("Views/sales-form.html"); ?>
         </div>
 
         <?!= include("JS/app.js"); ?> <?!= include("JS/insights.js"); ?> <?!=
         include("JS/expenses.js"); ?> <?!= include("JS/router.js"); ?> <?!=
-        include("JS/sales.js"); ?> <?!= include("JS/utils.js"); ?>
+        include("JS/sales.js"); ?> <?!= include("JS/utils.js"); ?> <?!=
+        include("JS/debts.js"); ?>
     </body>
 </html>

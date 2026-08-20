@@ -246,6 +246,155 @@ function getDaftraDailyTotals(dateStr) {
     return result;
 }
 
+// Total amount currently owed by each client, across ALL their invoices --
+// not just today's. This is the "who owes us money right now" list, i.e.
+// your accounts receivable / debts.
+//
+// Uses Daftra's own `summary_unpaid` figure per invoice (confirmed via the
+// API docs, Aug 2026), which is already netted against partial payments --
+// so a half-paid invoice only counts its remaining balance, not the full
+// total. That's more accurate than filtering by payment_status the way
+// getDaftraCreditInvoices() does for "today only".
+//
+// Paginates through every invoice you have (up to a safety cap), so this
+// can take a little while on an account with a lot of history -- that's
+// expected, it's meant to be run occasionally for a full snapshot, not on
+// every page load.
+function getDaftraOutstandingDebts() {
+    const balances = {}; // client_id -> { clientId, clientName, amount }
+    let page = 1;
+    const limit = 100;
+    const MAX_PAGES = 200; // safety valve, ~20,000 invoices
+
+    while (page <= MAX_PAGES) {
+        const payload = daftraGet_("invoices.json", { page, limit });
+
+        const invoices = daftraExtractList_(payload).map((item) =>
+            daftraUnwrap_(item, "Invoice"),
+        );
+
+        if (invoices.length === 0) break;
+
+        invoices.forEach((inv) => {
+            const unpaid = Number(inv.summary_unpaid) || 0;
+            if (unpaid <= 0) return;
+
+            const id = inv.client_id;
+            const name =
+                inv.client_business_name ||
+                [inv.client_first_name, inv.client_last_name]
+                    .filter(Boolean)
+                    .join(" ") ||
+                "Client #" + id;
+
+            if (!balances[id]) {
+                balances[id] = { clientId: id, clientName: name, amount: 0 };
+            }
+            balances[id].amount += unpaid;
+        });
+
+        const pagination = payload && payload.pagination;
+        const pageCount = pagination && Number(pagination.page_count);
+
+        if (!pageCount || page >= pageCount) break;
+        page++;
+    }
+
+    return Object.values(balances).sort((a, b) => b.amount - a.amount);
+}
+
+// Columns in the "Debts Snapshot" sheet. Columns E-G (Status/Notes/Updated
+// By/Updated At) are follow-up info an employee enters in the Debts page --
+// this function must preserve them on every refresh, only overwriting the
+// Daftra-sourced columns (Amount Owed, Snapshot Time).
+const DEBTS_HEADERS = [
+    "Client",
+    "Client ID",
+    "Amount Owed",
+    "Status",
+    "Notes",
+    "Updated By",
+    "Updated At",
+    "Snapshot Time",
+];
+
+// Pulls fresh balances from Daftra and writes them into the "Debts
+// Snapshot" sheet -- run this from the editor (function dropdown ->
+// refreshDebtsSnapshot -> Run) any time you want up-to-date numbers, or
+// tap "Refresh from Daftra" in the Debts page (employees with edit access
+// only). Any Status/Notes an employee already entered for a client is kept;
+// only the amount and snapshot time get overwritten. A client who no
+// longer owes anything (fully paid) drops off the list.
+function refreshDebtsSnapshot() {
+    const debts = getDaftraOutstandingDebts();
+
+    const ss = SpreadsheetApp.getActive();
+    let sheet = ss.getSheetByName(CONFIG.SHEETS.DEBTS);
+
+    if (!sheet) {
+        sheet = ss.insertSheet(CONFIG.SHEETS.DEBTS);
+    }
+
+    const lastRow = sheet.getLastRow();
+    const existing = {}; // clientId -> { status, notes, updatedBy, updatedAt }
+
+    if (lastRow > 1) {
+        sheet
+            .getRange(2, 1, lastRow - 1, DEBTS_HEADERS.length)
+            .getValues()
+            .forEach((row) => {
+                const clientId = row[1];
+                if (clientId === "" || clientId == null) return;
+
+                existing[clientId] = {
+                    status: row[3] || "",
+                    notes: row[4] || "",
+                    updatedBy: row[5] || "",
+                    updatedAt: row[6] || "",
+                };
+            });
+    }
+
+    sheet.clear();
+
+    const now = new Date();
+
+    sheet
+        .getRange(1, 1, 1, DEBTS_HEADERS.length)
+        .setValues([DEBTS_HEADERS])
+        .setFontWeight("bold");
+
+    if (debts.length > 0) {
+        const rows = debts.map((d) => {
+            const prev = existing[d.clientId] || {};
+
+            return [
+                d.clientName,
+                d.clientId,
+                d.amount,
+                prev.status || CONFIG.DEBT_STATUSES[0],
+                prev.notes || "",
+                prev.updatedBy || "",
+                prev.updatedAt || "",
+                now,
+            ];
+        });
+
+        sheet.getRange(2, 1, rows.length, DEBTS_HEADERS.length).setValues(rows);
+    }
+
+    sheet.autoResizeColumns(1, DEBTS_HEADERS.length);
+    sheet.setFrozenRows(1);
+
+    const total = debts.reduce((sum, d) => sum + d.amount, 0);
+
+    Logger.log(
+        `Debts snapshot done: ${debts.length} clients owe a total of ${total}.`,
+    );
+
+    return { count: debts.length, total };
+}
+
 // Run manually from the editor to sanity-check credentials and see the raw
 // Daftra responses before trusting the auto-filled form. Change TEST_DATE
 // to a day you know has real invoices/payments/expenses in Daftra.

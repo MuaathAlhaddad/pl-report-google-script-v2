@@ -21,9 +21,11 @@ function initialize() {
     input.onchange = function () {
         APP.period = this.value;
 
+        // Debts has no period filter (it's always "right now"), so a month
+        // change while on that tab is a no-op rather than reloading it.
         if (APP.currentTab == "sales") loadSalesDashboard();
         else if (APP.currentTab == "expenses") loadExpenseDashboard();
-        else loadInsightsDashboard();
+        else if (APP.currentTab == "dashboard") loadInsightsDashboard();
     };
 
     // Sales form is what you actually need open every night -- land there

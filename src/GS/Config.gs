@@ -5,7 +5,20 @@ const CONFIG = {
         EXPENSE_SETUP: "ExpenseSetup",
         GOALS: "Goals",
         SUPPLIERS: "Suppliers",
+        EMPLOYEES: "Employees",
+        DEBTS: "Debts Snapshot",
     },
+
+    // Options an employee can set on a debt while following up. Kept short
+    // and on-purpose -- this isn't meant to be a full CRM, just enough to
+    // answer "has anyone chased this one yet?" at a glance.
+    DEBT_STATUSES: [
+        "Not Contacted",
+        "Contacted",
+        "Promised to Pay",
+        "Overdue",
+        "Disputed",
+    ],
 
     PROFIT_MARGIN: 0.05,
 

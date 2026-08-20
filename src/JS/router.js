@@ -16,6 +16,9 @@ function showTab(tab) {
     document.getElementById("expensesPage").style.display =
         tab == "expenses" ? "block" : "none";
 
+    document.getElementById("debtsPage").style.display =
+        tab == "debts" ? "block" : "none";
+
     document
         .querySelectorAll(".tab")
         .forEach((t) => t.classList.remove("active"));
@@ -24,13 +27,22 @@ function showTab(tab) {
 
     if (tab == "dashboard") loadInsightsDashboard();
     else if (tab == "sales") loadSalesDashboard();
-    else loadExpenseDashboard();
+    else if (tab == "expenses") loadExpenseDashboard();
+    else if (tab == "debts") loadDebtsPage();
 }
 
 function showSalesForm() {
     document.getElementById("salesFormPage").style.display = "block";
     document.getElementById("mainPage").style.display = "none";
     initializeSalesForm();
+}
+
+// Quick jump straight to the Debts tab from anywhere (e.g. the link on the
+// sales form) without going through the dashboard first.
+function showDebts() {
+    document.getElementById("salesFormPage").style.display = "none";
+    document.getElementById("mainPage").style.display = "block";
+    showTab("debts");
 }
 
 function showExpenseWizard() {
