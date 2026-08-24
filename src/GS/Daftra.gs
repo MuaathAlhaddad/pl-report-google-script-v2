@@ -64,6 +64,64 @@ function daftraGet_(path, params) {
     return JSON.parse(body);
 }
 
+// Creates ONE new sales invoice. invoiceFields is the raw Invoice object
+// (client_id, date, and any other Invoice-level field Daftra accepts);
+// items is an array of InvoiceItem objects (product_id, item, quantity,
+// unit_price); payments is an optional array of Payment objects
+// (payment_method, amount, date) to mark the invoice paid at creation time.
+//
+// The request shape (Invoice/InvoiceItem/Payment as SEPARATE top-level
+// keys, not nested inside Invoice) comes from Daftra's own PHP API client
+// source (github.com/mix-code/daftra-client/blob/master/src/DaftraClient.php),
+// cross-checked against the "Edit Invoices" API docs page
+// (docs.daftara.dev/15115239e0) for field names -- this has NOT been
+// verified against this actual account yet, since doing that means
+// actually creating a real invoice. Create one real invoice by hand first
+// through the Bulk Invoice page and check it in Daftra before trusting
+// bulk creation with real client data.
+function createDaftraInvoice_(invoiceFields, items, payments) {
+    const { subdomain, apiKey } = getDaftraConfig_();
+
+    const payload = {
+        Invoice: invoiceFields,
+        InvoiceItem: items,
+    };
+
+    if (payments && payments.length) {
+        payload.Payment = payments;
+    }
+
+    const url = `https://${subdomain}.daftra.com/api2/invoices.json`;
+
+    const response = UrlFetchApp.fetch(url, {
+        method: "post",
+        contentType: "application/json",
+        headers: {
+            APIKEY: apiKey,
+            Accept: "application/json",
+        },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true,
+    });
+
+    const code = response.getResponseCode();
+    const body = response.getContentText();
+
+    if (code < 200 || code >= 300) {
+        throw new Error(
+            `Daftra API error ${code} creating invoice: ${body.slice(0, 300)}`,
+        );
+    }
+
+    const result = JSON.parse(body);
+    const invoice = daftraUnwrap_(result, "Invoice") || result;
+
+    return {
+        id: invoice.id,
+        no: invoice.no || invoice.invoice_number || invoice.id,
+    };
+}
+
 // Daftra's list endpoints aren't 100% consistent about the wrapper key
 // across API versions/endpoints. Try the common shapes rather than
 // assuming one, so a quirky response returns an empty list instead of
@@ -80,6 +138,8 @@ function daftraExtractList_(payload) {
             "ClientPayment",
             "InvoicePayment",
             "Income",
+            "Product",
+            "Client",
             "items",
         ];
 
@@ -547,7 +607,7 @@ function testDaftraConnection() {
 
     Logger.log("--- Raw incomes response ---");
     Logger.log(
-        JSON.stringify(
+        JSON.stringify( 
             daftraGet_("incomes.json", {
                 date_from: TEST_DATE,
                 date_to: TEST_DATE,
@@ -560,4 +620,29 @@ function testDaftraConnection() {
 
     Logger.log("--- Computed totals ---");
     Logger.log(JSON.stringify(getDaftraDailyTotals(TEST_DATE), null, 2));
+}
+
+// Run manually from the editor BEFORE trusting the Bulk Invoice page --
+// logs the raw products.json/clients.json responses so you can confirm the
+// field names guessed in searchDaftraProducts()/searchDaftraClients()
+// (BulkInvoice.gs) actually match what this account returns. If the mapped
+// products/clients below show placeholder names like "Product #123" instead
+// of real names, the guessed field names are wrong and need fixing before
+// the picker in the UI will be usable.
+function testDaftraProductsAndClients() {
+    Logger.log("--- Raw products response (page 1) ---");
+    Logger.log(
+        JSON.stringify(daftraGet_("products.json", { page: 1, limit: 5 }), null, 2),
+    );
+
+    Logger.log("--- Raw clients response (page 1) ---");
+    Logger.log(
+        JSON.stringify(daftraGet_("clients.json", { page: 1, limit: 5 }), null, 2),
+    );
+
+    Logger.log("--- Mapped products (searchDaftraProducts) ---");
+    Logger.log(JSON.stringify(searchDaftraProducts().slice(0, 5), null, 2));
+
+    Logger.log("--- Mapped clients (searchDaftraClients) ---");
+    Logger.log(JSON.stringify(searchDaftraClients().slice(0, 5), null, 2));
 }

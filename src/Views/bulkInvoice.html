@@ -1,0 +1,49 @@
+<div class="pageHeader">
+    <div>
+        <div class="pageTitle">🧾 Bulk Due Invoices</div>
+        <div class="pageSubtitle">
+            Same date, "فاتورة مستحقة" service, one invoice per client
+        </div>
+    </div>
+</div>
+
+<div class="formCard biCard">
+    <label>Date</label>
+    <input type="date" id="biDate" />
+
+    <div id="biServiceInfo" class="biServiceInfo"></div>
+
+    <label>Default Amount</label>
+    <input
+        type="number"
+        id="biDefaultAmount"
+        value="0"
+        oninput="biApplyDefaultAmount()"
+    />
+
+    <div class="sectionTitle biRowsTitle">Clients</div>
+
+    <div id="biRows" class="biRows"></div>
+
+    <button type="button" class="biAddRowButton" onclick="biAddRow()">
+        + Add Client
+    </button>
+
+    <div id="biSummary" class="biSummary"></div>
+
+    <div class="wizardButtons">
+        <button type="button" class="biCancelButton" onclick="showDashboard()">
+            Cancel
+        </button>
+        <button
+            type="button"
+            id="biSubmitButton"
+            class="biSubmitButton"
+            onclick="biSubmit()"
+        >
+            Create Invoices
+        </button>
+    </div>
+
+    <div id="biResults" class="biResultsLog"></div>
+</div>

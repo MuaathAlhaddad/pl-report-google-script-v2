@@ -1,0 +1,250 @@
+let BI = {
+    clients: [],
+    service: null,
+    rows: [],
+    nextRowId: 1,
+};
+
+function loadBulkInvoicePage() {
+    document.getElementById("biDate").value = biTodayDateStr_();
+
+    showLoading();
+
+    gsRun("getBulkInvoiceInitData")
+        .then(function (data) {
+            BI.clients = data.clients;
+            BI.service = data.service;
+            hideLoading();
+
+            biRenderServiceInfo();
+            document.getElementById("biDefaultAmount").value = BI.service.price || 0;
+
+            if (!BI.rows.length) biAddRow();
+        })
+        .catch(function (err) {
+            hideLoading();
+            showError(err);
+        });
+}
+
+function biRenderServiceInfo() {
+    const box = document.getElementById("biServiceInfo");
+
+    if (BI.service.id) {
+        box.className = "biServiceInfo";
+        box.innerHTML = `Service: <b>${escapeHtml(BI.service.name)}</b>`;
+        return;
+    }
+
+    box.className = "biServiceInfo biServiceWarning";
+    box.innerHTML =
+        `⚠️ "${escapeHtml(BI.service.name)}" wasn't found in your Daftra products — ` +
+        `invoices will still be created with this as a plain line item, just not linked to a catalog product.`;
+}
+
+function biTodayDateStr_() {
+    const d = new Date();
+    return (
+        d.getFullYear() +
+        "-" +
+        String(d.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(d.getDate()).padStart(2, "0")
+    );
+}
+
+function biApplyDefaultAmount() {
+    const amount = Number(document.getElementById("biDefaultAmount").value) || 0;
+
+    BI.rows.forEach((row) => {
+        if (row.amountTouched) return;
+
+        row.amount = amount;
+        const input = document.getElementById("biAmount_" + row.id);
+        if (input) input.value = amount;
+    });
+
+    biUpdateSummary();
+}
+
+// ---------- Client rows ----------
+
+function biAddRow() {
+    const row = {
+        id: BI.nextRowId++,
+        clientId: null,
+        clientName: "",
+        amount: Number(document.getElementById("biDefaultAmount").value) || 0,
+        amountTouched: false,
+    };
+
+    BI.rows.push(row);
+    biRenderRows();
+}
+
+function biRemoveRow(id) {
+    BI.rows = BI.rows.filter((r) => r.id !== id);
+    biRenderRows();
+}
+
+function biRenderRows() {
+    const container = document.getElementById("biRows");
+
+    container.innerHTML = BI.rows
+        .map(
+            (row) => `
+        <div class="biRow" data-row="${row.id}">
+            <div class="biSearchBox">
+                <input
+                    type="text"
+                    id="biClientSearch_${row.id}"
+                    placeholder="Search client..."
+                    autocomplete="off"
+                    value="${escapeAttr(row.clientName)}"
+                    oninput="biFilterClients(${row.id}, this.value)"
+                    onfocus="biFilterClients(${row.id}, this.value)"
+                />
+                <div id="biClientResults_${row.id}" class="biResults" style="display: none"></div>
+            </div>
+            <input
+                type="number"
+                id="biAmount_${row.id}"
+                class="biPriceInput"
+                value="${row.amount}"
+                min="0"
+                oninput="biUpdateRowAmount(${row.id}, this.value)"
+            />
+            <button type="button" class="biRemoveRowButton" onclick="biRemoveRow(${row.id})">×</button>
+        </div>
+    `,
+        )
+        .join("");
+
+    biUpdateSummary();
+}
+
+function biUpdateRowAmount(id, value) {
+    const row = BI.rows.find((r) => r.id === id);
+    if (!row) return;
+
+    row.amount = Number(value) || 0;
+    row.amountTouched = true;
+    biUpdateSummary();
+}
+
+function biFilterClients(rowId, query) {
+    const q = query.trim().toLowerCase();
+    const matches = q
+        ? BI.clients.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 15)
+        : [];
+
+    const box = document.getElementById("biClientResults_" + rowId);
+    if (!box) return;
+
+    if (!matches.length) {
+        box.style.display = "none";
+        box.innerHTML = "";
+        return;
+    }
+
+    box.innerHTML = matches
+        .map(
+            (c) => `
+        <div class="biResultItem" onclick="biSelectClient(${rowId}, ${c.id})">
+            <span>${escapeHtml(c.name)}</span>
+        </div>
+    `,
+        )
+        .join("");
+    box.style.display = "block";
+}
+
+function biSelectClient(rowId, clientId) {
+    const client = BI.clients.find((c) => c.id === Number(clientId));
+    const row = BI.rows.find((r) => r.id === Number(rowId));
+    if (!client || !row) return;
+
+    row.clientId = client.id;
+    row.clientName = client.name;
+    row.clientEmail = client.email || "";
+
+    document.getElementById("biClientSearch_" + rowId).value = client.name;
+    document.getElementById("biClientResults_" + rowId).style.display = "none";
+
+    biUpdateSummary();
+}
+
+function biUpdateSummary() {
+    const validRows = BI.rows.filter((r) => r.clientId);
+    const total = validRows.reduce((sum, r) => sum + r.amount, 0);
+
+    document.getElementById("biSummary").innerHTML =
+        `<b>${validRows.length}</b> invoice${validRows.length === 1 ? "" : "s"} ready` +
+        ` &nbsp;|&nbsp; Total: <b>${money(total)}</b>`;
+}
+
+// ---------- Submit ----------
+
+function biSubmit() {
+    const date = document.getElementById("biDate").value;
+    if (!date) {
+        alert("Pick a date first.");
+        return;
+    }
+
+    const validRows = BI.rows.filter((r) => r.clientId && r.amount > 0);
+    if (!validRows.length) {
+        alert("Add at least one client with an amount.");
+        return;
+    }
+
+    const total = validRows.reduce((sum, r) => sum + r.amount, 0);
+    const names = validRows.map((r) => r.clientName).join(", ");
+
+    const confirmed = confirm(
+        `Create ${validRows.length} due invoice(s) dated ${date}?\n\n` +
+            `Clients: ${names}\n` +
+            `Total: ${money(total)} (unpaid)\n\n` +
+            `This creates real invoices in Daftra.`,
+    );
+    if (!confirmed) return;
+
+    document.getElementById("biSubmitButton").disabled = true;
+    showLoading();
+
+    gsRun(
+        "createBulkSalesInvoices",
+        date,
+        validRows.map((r) => ({
+            clientId: r.clientId,
+            clientName: r.clientName,
+            clientEmail: r.clientEmail,
+            amount: r.amount,
+        })),
+    )
+        .then(function (results) {
+            hideLoading();
+            document.getElementById("biSubmitButton").disabled = false;
+            biRenderResults(results);
+        })
+        .catch(function (err) {
+            hideLoading();
+            document.getElementById("biSubmitButton").disabled = false;
+            showError(err);
+        });
+}
+
+function biRenderResults(results) {
+    const okCount = results.filter((r) => r.success).length;
+
+    document.getElementById("biResults").innerHTML = `
+        <div class="biResultsHeader">${okCount}/${results.length} invoice(s) created</div>
+        ${results
+            .map((r) =>
+                r.success
+                    ? `<div class="biResultRow biResultOk">✅ ${escapeHtml(r.clientName)} — Invoice #${escapeHtml(String(r.invoiceNo))}</div>`
+                    : `<div class="biResultRow biResultFail">❌ ${escapeHtml(r.clientName)} — ${escapeHtml(r.error)}</div>`,
+            )
+            .join("")}
+    `;
+}

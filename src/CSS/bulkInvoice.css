@@ -1,0 +1,158 @@
+.biCard {
+    max-width: 700px;
+}
+
+.biRowsTitle {
+    margin-top: 25px;
+}
+
+.biSearchBox {
+    position: relative;
+}
+
+.biResults {
+    position: absolute;
+    z-index: 20;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.biResultItem {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.biResultItem:hover {
+    background: #f5f5f5;
+}
+
+.biServiceInfo {
+    margin: 12px 0 20px;
+    padding: 10px 14px;
+    background: #eef6ff;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #333;
+}
+
+.biServiceWarning {
+    background: #fff8e1;
+    color: #8a6d00;
+}
+
+.biRows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.biRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.biRow .biSearchBox {
+    flex: 1;
+    min-width: 0;
+}
+
+.biPriceInput {
+    width: 90px !important;
+    flex: none;
+}
+
+.biAddRowButton {
+    margin-top: 12px;
+    padding: 10px 16px;
+    border: 1px dashed #bbb;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #555;
+}
+
+.biAddRowButton:hover {
+    border-color: #1976d2;
+    color: #1976d2;
+}
+
+.biSummary {
+    margin-top: 20px;
+    padding: 14px 18px;
+    background: #eef6ff;
+    border-radius: 10px;
+    font-size: 15px;
+    color: #333;
+}
+
+.biCancelButton,
+.biSubmitButton {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.biCancelButton {
+    background: #757575;
+    color: white;
+}
+
+.biCancelButton:hover {
+    background: #616161;
+}
+
+.biSubmitButton {
+    background: #2e7d32;
+    color: white;
+}
+
+.biSubmitButton:hover {
+    background: #1b5e20;
+}
+
+.biSubmitButton:disabled {
+    background: #a5d6a7;
+    cursor: not-allowed;
+}
+
+.biResultsLog {
+    margin-top: 20px;
+}
+
+.biResultsHeader {
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.biResultRow {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.biResultOk {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.biResultFail {
+    background: #ffebee;
+    color: #c62828;
+}

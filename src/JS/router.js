@@ -19,6 +19,9 @@ function showTab(tab) {
     document.getElementById("debtsPage").style.display =
         tab == "debts" ? "block" : "none";
 
+    document.getElementById("bulkInvoicePage").style.display =
+        tab == "bulkInvoice" ? "block" : "none";
+
     document
         .querySelectorAll(".tab")
         .forEach((t) => t.classList.remove("active"));
@@ -29,6 +32,7 @@ function showTab(tab) {
     else if (tab == "sales") loadSalesDashboard();
     else if (tab == "expenses") loadExpenseDashboard();
     else if (tab == "debts") loadDebtsPage();
+    else if (tab == "bulkInvoice") loadBulkInvoicePage();
 }
 
 function showSalesForm() {
