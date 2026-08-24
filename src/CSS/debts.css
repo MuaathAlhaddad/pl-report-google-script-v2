@@ -1,0 +1,692 @@
+/* Fonts for the Debts page ledger look -- must stay the first rule in
+   this file, @import only takes effect before any other CSS. */
+@import url("https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+/* ---------- Debts page ("The Chase List") ----------
+   Scoped entirely under #debtsPage so the rest of the app keeps its
+   existing look. Palette/type ported from an earlier design exploration
+   (ledger/paper aesthetic) done as a claude.ai artifact. */
+
+#debtsPage {
+    --ink: #1b2430;
+    --paper: #f2ebdd;
+    --paper-dark: #e7dec9;
+    --rule: #c9bfa8;
+    --amber: #b8792a;
+    --red: #a73b2e;
+    --crimson: #7a1f1f;
+    --sage: #3f6b52;
+    --muted: #5b6472;
+    --whatsapp: #2e7d5b;
+
+    font-family: "Inter", Arial, sans-serif;
+    color: var(--ink);
+}
+
+#debtsPage .debtSerif {
+    font-family: "Roboto Slab", serif;
+}
+
+#debtsPage .debtMono {
+    font-family: "IBM Plex Mono", monospace;
+}
+
+/* ----- shared inputs/buttons ----- */
+
+#debtsPage .debtLoginLabel {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin: 14px 0 6px;
+}
+
+#debtsPage .debtLoginInput {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    font-size: 15px;
+    font-family: inherit;
+    background: white;
+}
+
+#debtsPage .debtLoginInput:focus {
+    outline: none;
+    border-color: var(--ink);
+}
+
+#debtsPage .debtTextarea {
+    resize: vertical;
+}
+
+#debtsPage .debtLoginError {
+    color: var(--crimson);
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+#debtsPage .debtBtn {
+    border: none;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+}
+
+#debtsPage .debtBtnDark {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+#debtsPage .debtBtnSage {
+    background: var(--sage);
+    color: white;
+}
+
+#debtsPage .debtBtnAmber {
+    background: var(--amber);
+    color: white;
+}
+
+#debtsPage .debtBtnCrimson {
+    background: transparent;
+    color: var(--crimson);
+    border: 1px solid var(--crimson);
+}
+
+#debtsPage .debtBtnGhost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--rule);
+}
+
+#debtsPage .debtBtnWhatsapp {
+    background: var(--whatsapp);
+    color: white;
+}
+
+#debtsPage .debtLoginButton {
+    width: 100%;
+    justify-content: center;
+    padding: 14px;
+    margin-top: 18px;
+    font-size: 15px;
+}
+
+/* ----- login screen ----- */
+
+#debtsPage .debtLoginWrap {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#debtsPage .debtLoginCard {
+    max-width: 380px;
+    width: 100%;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 20px;
+    padding: 28px;
+}
+
+#debtsPage .debtLoginTitle {
+    font-family: "Roboto Slab", serif;
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0 0 4px;
+}
+
+#debtsPage .debtLoginSub {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0;
+}
+
+/* ----- main app shell ----- */
+
+#debtsPage .debtApp {
+    background: var(--paper);
+    border-radius: 20px;
+    padding: 22px;
+}
+
+#debtsPage .debtHeader {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+}
+
+#debtsPage .debtHeaderTop {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+#debtsPage .debtTitle {
+    font-family: "Roboto Slab", serif;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+}
+
+#debtsPage .debtSnapshotTime {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+#debtsPage .debtHeaderRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+#debtsPage .debtHeaderActions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+#debtsPage .debtHeaderLink {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0;
+    font-family: inherit;
+}
+
+#debtsPage .debtCountBadge {
+    background: var(--red);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 999px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#debtsPage .debtStatRow {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-top: 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+#debtsPage .debtStatLabel {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+#debtsPage .debtStatValue {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 30px;
+    font-weight: 600;
+}
+
+#debtsPage .debtChaseTodayPill {
+    display: inline-flex;
+    align-items: center;
+    color: var(--red);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* ----- search / filters ----- */
+
+#debtsPage .debtSearchBar {
+    margin-bottom: 12px;
+}
+
+#debtsPage .debtSearchBar input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 16px;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: var(--paper-dark);
+    font-size: 14px;
+    font-family: inherit;
+}
+
+#debtsPage .debtSearchBar input:focus {
+    outline: none;
+    border-color: var(--ink);
+}
+
+#debtsPage .debtTypeToggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+#debtsPage .debtTypeOpt {
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+#debtsPage .debtTypeOpt.active {
+    background: var(--paper-dark);
+    color: var(--ink);
+    border-color: var(--ink);
+}
+
+#debtsPage .debtTabsRow {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+}
+
+#debtsPage .debtTab {
+    flex: none;
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#debtsPage .debtTab.active {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+}
+
+#debtsPage .debtTabCount {
+    opacity: 0.7;
+}
+
+/* ----- debt cards ----- */
+
+#debtsPage .debtList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#debtsPage .debtCard {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 16px;
+    padding: 16px;
+}
+
+#debtsPage .debtCardTop {
+    display: flex;
+    gap: 14px;
+}
+
+#debtsPage .debtBadge {
+    flex: none;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid var(--muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.1;
+}
+
+#debtsPage .debtBadgeNum {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+#debtsPage .debtBadgeLabel {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-top: 2px;
+    padding: 0 2px;
+}
+
+#debtsPage .debtBadge-ok {
+    border-color: var(--sage);
+    color: var(--sage);
+}
+
+#debtsPage .debtBadge-soon {
+    border-color: var(--amber);
+    color: var(--amber);
+}
+
+#debtsPage .debtBadge-today,
+#debtsPage .debtBadge-over {
+    border-color: var(--red);
+    color: var(--red);
+}
+
+#debtsPage .debtBadge-none {
+    border-color: var(--rule);
+    color: var(--muted);
+    border-style: dashed;
+}
+
+#debtsPage .debtBadge-paid {
+    border-color: var(--sage);
+    color: var(--sage);
+}
+
+#debtsPage .debtBadge-dead {
+    border-color: var(--crimson);
+    color: var(--crimson);
+}
+
+#debtsPage .debtCardMain {
+    flex: 1;
+    min-width: 0;
+}
+
+#debtsPage .debtCardHead {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+#debtsPage .debtTypePill {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-bottom: 4px;
+}
+
+#debtsPage .debtTypePill-long {
+    background: #e3edf7;
+    color: #2563eb;
+}
+
+#debtsPage .debtTypePill-short {
+    background: #f2e6d0;
+    color: var(--amber);
+}
+
+#debtsPage .debtName {
+    font-family: "Roboto Slab", serif;
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 1.2;
+}
+
+#debtsPage .debtAmount {
+    text-align: right;
+    flex: none;
+}
+
+#debtsPage .debtAmountValue {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+#debtsPage .debtAmountSub {
+    font-size: 10px;
+    color: var(--muted);
+}
+
+#debtsPage .debtMeta {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+#debtsPage .debtPhone {
+    color: var(--sage);
+    text-decoration: none;
+}
+
+#debtsPage .debtLastLine {
+    display: block;
+    background: none;
+    border: none;
+    padding: 0;
+    text-align: left;
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 6px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+#debtsPage .debtLog {
+    border-left: 2px solid var(--rule);
+    margin-top: 8px;
+    padding-left: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#debtsPage .debtLogRow {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+#debtsPage .debtLogTime {
+    color: var(--ink);
+    font-family: "IBM Plex Mono", monospace;
+}
+
+#debtsPage .debtActionRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+#debtsPage .debtActionForm {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#debtsPage .debtActionForm input {
+    padding: 10px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+#debtsPage .debtActionButtons {
+    display: flex;
+    gap: 8px;
+}
+
+#debtsPage .debtResolvedRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+}
+
+#debtsPage .debtResolvedLabel {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+#debtsPage .debtResolvedLabel-paid {
+    color: var(--sage);
+}
+
+#debtsPage .debtResolvedLabel-dead {
+    color: var(--crimson);
+}
+
+/* ----- bottom sheets (Add Short Debt / Review) ----- */
+
+#debtsPage .debtSheetOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(27, 36, 48, 0.45);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 20;
+}
+
+#debtsPage .debtSheet {
+    background: var(--paper);
+    width: 100%;
+    max-width: 480px;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px 28px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+#debtsPage .debtSheetHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+#debtsPage .debtSheetHead h2 {
+    font-family: "Roboto Slab", serif;
+    font-size: 18px;
+    margin: 0;
+}
+
+#debtsPage .debtSheetClose {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#debtsPage .debtSheetHint {
+    color: var(--muted);
+    font-size: 12px;
+    margin: 0 0 12px;
+}
+
+#debtsPage .debtReviewList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#debtsPage .debtReviewRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    text-align: left;
+    background: white;
+    border: 1px solid var(--ink);
+    border-radius: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+#debtsPage .debtReviewRow.reviewed {
+    background: var(--paper-dark);
+    border-color: var(--rule);
+    opacity: 0.7;
+}
+
+#debtsPage .debtReviewCheck {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    border: 2px solid var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: white;
+    background: white;
+}
+
+#debtsPage .debtReviewRow.reviewed .debtReviewCheck {
+    background: var(--sage);
+    border-color: var(--sage);
+}
+
+#debtsPage .debtReviewText {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+#debtsPage .debtReviewLine {
+    font-size: 13px;
+}
+
+#debtsPage .debtReviewMeta {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+#debtsPage .fab {
+    background: var(--ink);
+}
+
+@media (max-width: 640px) {
+    #debtsPage .debtApp {
+        padding: 16px 14px;
+        border-radius: 0;
+    }
+}

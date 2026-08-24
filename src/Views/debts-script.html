@@ -1,0 +1,645 @@
+// ============================================================
+// Debts page -- lets employees (signed in with a name + PIN, since the
+// team is on personal Gmail rather than a shared Workspace domain) see
+// who currently owes money and chase them down.
+//
+// Two kinds of debt, both stored in the same "Debts Snapshot" sheet (see
+// DEBTS_HEADERS in Daftra.gs for the column layout):
+//   - Long debts:  pulled live from Daftra (already-invoiced credit).
+//     refreshDebtsSnapshot() (Daftra.gs) creates/updates the money side;
+//     follow-up (status, due date, payments, log) is edited here.
+//   - Short debts: entered by hand from the separate notebook that never
+//     becomes a Daftra invoice. Added and fully managed from this page.
+//
+// The logged-in employee's name + PIN are kept in this browser's
+// localStorage so they don't have to log in every visit -- see the note
+// in Debts.gs about why that's an acceptable tradeoff for an internal
+// tool, not something to reuse for anything sensitive.
+// ============================================================
+
+const DEBTS = {
+    employee: null,
+    data: null,
+    reviewLog: null,
+    tab: "today",
+    typeFilter: "all",
+    query: "",
+    expandedLog: null,
+    openAction: null, // { clientId, kind: 'note' | 'pay' | 'due' }
+    draft: {},
+};
+
+const DEBTS_STORAGE_KEY = "shopDebtsEmployee";
+
+// ---------- date helpers (server sends todayStr so this matches the
+// script's timezone, not the phone's) ----------
+
+function debtsToday() {
+    return (DEBTS.data && DEBTS.data.todayStr) || new Date().toISOString().slice(0, 10);
+}
+
+function debtsAddDays(iso, n) {
+    const d = new Date(iso + "T00:00:00");
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+}
+
+function debtsDaysBetween(a, b) {
+    const d1 = new Date(a + "T00:00:00");
+    const d2 = new Date(b + "T00:00:00");
+    return Math.round((d2 - d1) / 86400000);
+}
+
+function debtsFmtDate(iso) {
+    if (!iso) return "";
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function debtsFmtDateTime(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return d.toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function debtsDueInfo(d) {
+    if (d.status !== "active") {
+        return { label: d.status === "paid" ? "Paid" : "Dead debt", cls: "debtBadge-" + d.status };
+    }
+    if (!d.dueDate) return { label: "no date", cls: "debtBadge-none" };
+
+    const diff = debtsDaysBetween(debtsToday(), d.dueDate);
+
+    if (diff > 3) return { label: `${diff}d left`, cls: "debtBadge-ok", diff };
+    if (diff > 0) return { label: `${diff}d left`, cls: "debtBadge-soon", diff };
+    if (diff === 0) return { label: "due today", cls: "debtBadge-today", diff };
+    return { label: `+${Math.abs(diff)}d over`, cls: "debtBadge-over", diff };
+}
+
+// ---------- login ----------
+
+function loadDebtsPage() {
+    const saved = localStorage.getItem(DEBTS_STORAGE_KEY);
+
+    if (saved) {
+        try {
+            DEBTS.employee = JSON.parse(saved);
+        } catch (e) {
+            DEBTS.employee = null;
+        }
+    }
+
+    if (DEBTS.employee) {
+        showDebtsMain();
+    } else {
+        showDebtsLogin();
+    }
+}
+
+function showDebtsLogin() {
+    document.getElementById("debtsLogin").style.display = "block";
+    document.getElementById("debtsMain").style.display = "none";
+
+    const errorBox = document.getElementById("debtsLoginError");
+    errorBox.style.display = "none";
+    document.getElementById("debtsLoginPin").value = "";
+
+    showLoading();
+
+    gsRun("getEmployeeNames")
+        .then(function (names) {
+            hideLoading();
+
+            const select = document.getElementById("debtsLoginName");
+            select.innerHTML = names
+                .map(
+                    (e) =>
+                        `<option value="${escapeAttr(e.name)}">${escapeHtml(e.name)}</option>`,
+                )
+                .join("");
+        })
+        .catch(function (err) {
+            hideLoading();
+            showError(err);
+        });
+}
+
+function debtsLogin() {
+    const name = document.getElementById("debtsLoginName").value;
+    const pin = document.getElementById("debtsLoginPin").value;
+    const errorBox = document.getElementById("debtsLoginError");
+
+    errorBox.style.display = "none";
+    showLoading();
+
+    gsRun("authenticateEmployee", name, pin)
+        .then(function (employee) {
+            hideLoading();
+
+            DEBTS.employee = { name: employee.name, pin: pin, role: employee.role };
+            localStorage.setItem(DEBTS_STORAGE_KEY, JSON.stringify(DEBTS.employee));
+
+            showDebtsMain();
+        })
+        .catch(function (err) {
+            hideLoading();
+            errorBox.textContent = err.message || err;
+            errorBox.style.display = "block";
+        });
+}
+
+function debtsLogout() {
+    localStorage.removeItem(DEBTS_STORAGE_KEY);
+    DEBTS.employee = null;
+    DEBTS.data = null;
+    DEBTS.reviewLog = null;
+    showDebtsLogin();
+}
+
+// ---------- main page ----------
+
+function showDebtsMain() {
+    document.getElementById("debtsLogin").style.display = "none";
+    document.getElementById("debtsMain").style.display = "block";
+    document.getElementById("debtsWhoAmI").textContent = DEBTS.employee.name;
+
+    const canEdit = DEBTS.employee.role === "edit";
+
+    document.getElementById("debtsRefreshButton").style.display = canEdit ? "inline-flex" : "none";
+    document.getElementById("debtsAddButton").style.display = canEdit ? "" : "none";
+    document.getElementById("debtsReviewButton").style.display = canEdit ? "inline-flex" : "none";
+
+    fetchDebts();
+}
+
+function fetchDebts() {
+    showLoading();
+
+    Promise.all([
+        gsRun("getDebtsList", DEBTS.employee.name, DEBTS.employee.pin),
+        gsRun("getDebtsReviewLog", DEBTS.employee.name, DEBTS.employee.pin),
+    ])
+        .then(function (results) {
+            hideLoading();
+            DEBTS.data = results[0];
+            DEBTS.reviewLog = results[1];
+
+            document.getElementById("debtsSnapshotTime").textContent = DEBTS.data.snapshotTime
+                ? "Daftra last pulled " + DEBTS.data.snapshotTime
+                : "";
+
+            renderDebtsHeader();
+            renderDebtsTabs();
+            renderDebts();
+        })
+        .catch(function (err) {
+            hideLoading();
+
+            // A removed/changed PIN shows up here as an auth error -- bounce
+            // back to the login screen instead of a dead-end error alert.
+            if (String(err.message || err).indexOf("Name or PIN not recognized") !== -1) {
+                debtsLogout();
+                return;
+            }
+
+            showError(err);
+        });
+}
+
+function refreshDebts() {
+    showLoading();
+
+    gsRun("refreshDebtsFromApp", DEBTS.employee.name, DEBTS.employee.pin)
+        .then(function () {
+            fetchDebts();
+        })
+        .catch(function (err) {
+            hideLoading();
+            showError(err);
+        });
+}
+
+function debtsAllList() {
+    if (!DEBTS.data) return [];
+    return DEBTS.data.long.concat(DEBTS.data.short);
+}
+
+function debtsAllLogEntries() {
+    const rows = [];
+    debtsAllList().forEach((d) => {
+        (d.log || []).forEach((e) => rows.push(Object.assign({}, e, { clientName: d.clientName })));
+    });
+    return rows.sort((a, b) => new Date(b.time) - new Date(a.time));
+}
+
+function debtsUnreviewedCount() {
+    if (!DEBTS.reviewLog) return 0;
+    return debtsAllLogEntries().filter((e) => !DEBTS.reviewLog[e.id]).length;
+}
+
+function renderDebtsHeader() {
+    const list = debtsAllList();
+    const todayCount = list.filter((d) => d.status === "active" && d.lastFollowUp !== debtsToday()).length;
+
+    document.getElementById("debtsTotal").textContent = money(DEBTS.data.total);
+
+    const chaseEl = document.getElementById("debtsChaseToday");
+    if (todayCount > 0) {
+        chaseEl.style.display = "inline-flex";
+        chaseEl.textContent = `${todayCount} to chase today`;
+    } else {
+        chaseEl.style.display = "none";
+    }
+
+    const unread = debtsUnreviewedCount();
+    const reviewBadge = document.getElementById("debtsReviewBadge");
+    if (unread > 0) {
+        reviewBadge.style.display = "inline-flex";
+        reviewBadge.textContent = unread > 9 ? "9+" : unread;
+    } else {
+        reviewBadge.style.display = "none";
+    }
+}
+
+function renderDebtsTabs() {
+    const list = debtsAllList();
+    const counts = {
+        today: list.filter((d) => d.status === "active" && d.lastFollowUp !== debtsToday()).length,
+        active: list.filter((d) => d.status === "active").length,
+        paid: list.filter((d) => d.status === "paid").length,
+        dead: list.filter((d) => d.status === "dead").length,
+    };
+
+    document.querySelectorAll("#debtsTabs .debtTab").forEach((btn) => {
+        const tab = btn.getAttribute("data-tab");
+        btn.classList.toggle("active", tab === DEBTS.tab);
+        btn.querySelector(".debtTabCount").textContent = counts[tab];
+    });
+
+    document.querySelectorAll("#debtsTypeToggle .debtTypeOpt").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-type") === DEBTS.typeFilter);
+    });
+}
+
+function setDebtsTab(tab) {
+    DEBTS.tab = tab;
+    renderDebtsTabs();
+    renderDebts();
+}
+
+function setDebtsTypeFilter(type) {
+    DEBTS.typeFilter = type;
+    renderDebtsTabs();
+    renderDebts();
+}
+
+function renderDebts() {
+    if (!DEBTS.data) return;
+
+    DEBTS.query = document.getElementById("debtsSearch").value.trim().toLowerCase();
+
+    let list = debtsAllList();
+
+    if (DEBTS.tab === "today") {
+        list = list.filter((d) => d.status === "active" && d.lastFollowUp !== debtsToday());
+    } else {
+        list = list.filter((d) => d.status === DEBTS.tab);
+    }
+
+    if (DEBTS.typeFilter !== "all") {
+        list = list.filter((d) => d.type.toLowerCase() === DEBTS.typeFilter);
+    }
+
+    if (DEBTS.query) {
+        list = list.filter((d) => d.clientName.toLowerCase().includes(DEBTS.query));
+    }
+
+    list = list.slice().sort((a, b) => {
+        const da = a.dueDate ? debtsDaysBetween(debtsToday(), a.dueDate) : Infinity;
+        const db = b.dueDate ? debtsDaysBetween(debtsToday(), b.dueDate) : Infinity;
+        return da - db;
+    });
+
+    const container = document.getElementById("debtsList");
+    const empty = document.getElementById("debtsEmpty");
+    const canEdit = DEBTS.employee.role === "edit";
+
+    if (list.length === 0) {
+        container.innerHTML = "";
+        empty.style.display = "block";
+        empty.textContent =
+            DEBTS.tab === "today" ? "Nothing to chase today. Clean slate." : "No entries here yet.";
+        return;
+    }
+
+    empty.style.display = "none";
+    container.innerHTML = list.map((d) => debtCardHtml(d, canEdit)).join("");
+}
+
+function debtWaLink(d) {
+    const digits = (d.phone || "").replace(/\D/g, "");
+    if (!digits) return null;
+
+    const remaining = d.amount - d.amountPaid;
+    const when = d.dueDate ? (d.dueDate === debtsToday() ? "today" : `on ${debtsFmtDate(d.dueDate)}`) : "soon";
+    const msg = `Hi ${d.clientName}, friendly reminder that your balance of ${money(remaining)} is due ${when}. Could you let us know when you can settle it? Thank you!`;
+
+    return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
+}
+
+function debtCardHtml(d, canEdit) {
+    const due = debtsDueInfo(d);
+    const remaining = d.amount - d.amountPaid;
+    const lastEntry = d.log && d.log.length ? d.log[d.log.length - 1] : null;
+    const logOpen = DEBTS.expandedLog === d.clientId;
+    const action = DEBTS.openAction && DEBTS.openAction.clientId === d.clientId ? DEBTS.openAction.kind : null;
+    const wa = debtWaLink(d);
+    const typePill = d.type === "Short" ? "Notebook" : "Daftra";
+
+    const metaBits = [
+        d.dateGiven ? `Given ${debtsFmtDate(d.dateGiven)}` : "",
+        d.dueDate ? `Due ${debtsFmtDate(d.dueDate)}` : "",
+        d.promiseCount > 0 ? `Rescheduled x${d.promiseCount}` : "",
+        d.phone ? `<a href="tel:${escapeAttr(d.phone)}" class="debtPhone">Tel: ${escapeHtml(d.phone)}</a>` : "",
+    ].filter(Boolean);
+
+    let actionsHtml = "";
+
+    if (d.status === "active" && canEdit) {
+        if (action === "note") {
+            actionsHtml = `
+                <div class="debtActionForm">
+                    <input type="text" id="debtDraft-${d.clientId}" placeholder="What happened? (optional)" value="${escapeAttr(DEBTS.draft[d.clientId] || "")}" oninput="DEBTS.draft['${d.clientId}']=this.value" />
+                    <div class="debtActionButtons">
+                        <button type="button" class="debtBtn debtBtnSage" onclick="submitDebtFollowUp('${d.clientId}')">Save</button>
+                        <button type="button" class="debtBtn debtBtnGhost" onclick="closeDebtAction()">X</button>
+                    </div>
+                </div>`;
+        } else if (action === "pay") {
+            actionsHtml = `
+                <div class="debtActionForm">
+                    <input type="number" id="debtDraft-${d.clientId}" placeholder="Amount paid (up to ${money(remaining)})" value="${escapeAttr(DEBTS.draft[d.clientId] || "")}" oninput="DEBTS.draft['${d.clientId}']=this.value" />
+                    <div class="debtActionButtons">
+                        <button type="button" class="debtBtn debtBtnSage" onclick="submitDebtPayment('${d.clientId}')">Record payment</button>
+                        <button type="button" class="debtBtn debtBtnGhost" onclick="closeDebtAction()">X</button>
+                    </div>
+                </div>`;
+        } else if (action === "due") {
+            actionsHtml = `
+                <div class="debtActionForm">
+                    <input type="date" id="debtDraft-${d.clientId}" value="${escapeAttr(DEBTS.draft[d.clientId] || d.dueDate || "")}" oninput="DEBTS.draft['${d.clientId}']=this.value" />
+                    <div class="debtActionButtons">
+                        <button type="button" class="debtBtn debtBtnAmber" onclick="submitDebtDueDate('${d.clientId}')">Save date</button>
+                        <button type="button" class="debtBtn debtBtnGhost" onclick="closeDebtAction()">X</button>
+                    </div>
+                </div>`;
+        } else {
+            actionsHtml = `
+                <div class="debtActionRow">
+                    <button type="button" class="debtBtn debtBtnDark" onclick="openDebtAction('${d.clientId}','note')">Chased today</button>
+                    <button type="button" class="debtBtn debtBtnSage" onclick="openDebtAction('${d.clientId}','pay')">Record payment</button>
+                    <button type="button" class="debtBtn debtBtnAmber" onclick="openDebtAction('${d.clientId}','due')">${d.dueDate ? "New promised date" : "Set due date"}</button>
+                    ${wa ? `<a href="${wa}" target="_blank" rel="noopener noreferrer" class="debtBtn debtBtnWhatsapp">WhatsApp reminder</a>` : ""}
+                    <button type="button" class="debtBtn debtBtnCrimson" onclick="submitDeadDebt('${d.clientId}')">Dead debt</button>
+                </div>`;
+        }
+    } else if (d.status !== "active") {
+        actionsHtml = `
+            <div class="debtResolvedRow">
+                <span class="debtResolvedLabel debtResolvedLabel-${d.status}">${d.status === "paid" ? "Paid" : "Dead debt"}</span>
+                ${canEdit ? `<button type="button" class="debtBtn debtBtnGhost" onclick="submitDebtStatus('${d.clientId}','active')">Reopen</button>` : ""}
+            </div>`;
+    }
+
+    return `
+        <div class="debtCard">
+            <div class="debtCardTop">
+                <div class="debtBadge ${due.cls}">
+                    <span class="debtBadgeNum">${due.diff !== undefined ? (due.diff < 0 ? "+" + Math.abs(due.diff) : due.diff) : "-"}</span>
+                    <span class="debtBadgeLabel">${escapeHtml(due.label)}</span>
+                </div>
+                <div class="debtCardMain">
+                    <div class="debtCardHead">
+                        <div>
+                            <span class="debtTypePill debtTypePill-${d.type.toLowerCase()}">${typePill}</span>
+                            <div class="debtName">${escapeHtml(d.clientName)}</div>
+                        </div>
+                        <div class="debtAmount">
+                            <div class="debtAmountValue">${money(remaining)}</div>
+                            ${d.amountPaid > 0 ? `<div class="debtAmountSub">of ${money(d.amount)}</div>` : ""}
+                        </div>
+                    </div>
+                    <div class="debtMeta">${metaBits.join(" | ")}</div>
+                    ${
+                        lastEntry
+                            ? `<button type="button" class="debtLastLine" onclick="toggleDebtLog('${d.clientId}')">Last: ${escapeHtml(lastEntry.note)} - ${escapeHtml(lastEntry.actor)}, ${debtsFmtDateTime(lastEntry.time)} ${logOpen ? "^" : "v"}</button>`
+                            : ""
+                    }
+                    ${
+                        logOpen
+                            ? `<div class="debtLog">${d.log
+                                  .slice()
+                                  .reverse()
+                                  .map(
+                                      (e) =>
+                                          `<div class="debtLogRow"><span class="debtLogTime">${debtsFmtDateTime(e.time)}</span> | ${escapeHtml(e.actor)} - ${escapeHtml(e.note)}</div>`,
+                                  )
+                                  .join("")}</div>`
+                            : ""
+                    }
+                    ${actionsHtml}
+                </div>
+            </div>
+        </div>`;
+}
+
+function toggleDebtLog(clientId) {
+    DEBTS.expandedLog = DEBTS.expandedLog === clientId ? null : clientId;
+    renderDebts();
+}
+
+function openDebtAction(clientId, kind) {
+    DEBTS.openAction = { clientId, kind };
+    delete DEBTS.draft[clientId];
+    renderDebts();
+    setTimeout(() => {
+        const el = document.getElementById(`debtDraft-${clientId}`);
+        if (el) el.focus();
+    }, 0);
+}
+
+function closeDebtAction() {
+    DEBTS.openAction = null;
+    renderDebts();
+}
+
+function submitDebtFollowUp(clientId) {
+    const note = DEBTS.draft[clientId] || "";
+    showLoading();
+
+    gsRun("addDebtFollowUp", DEBTS.employee.name, DEBTS.employee.pin, clientId, note)
+        .then(function () {
+            DEBTS.openAction = null;
+            delete DEBTS.draft[clientId];
+            fetchDebts();
+        })
+        .catch(function (err) {
+            hideLoading();
+            showError(err);
+        });
+}
+
+function submitDebtPayment(clientId) {
+    const amount = DEBTS.draft[clientId];
+    showLoading();
+
+    gsRun("recordDebtPayment", DEBTS.employee.name, DEBTS.employee.pin, clientId, amount)
+        .then(function () {
+            DEBTS.openAction = null;
+            delete DEBTS.draft[clientId];
+            fetchDebts();
+        })
+        .catch(function (err) {
+            hideLoading();
+            showError(err);
+        });
+}
+
+function submitDebtDueDate(clientId) {
+    const newDate = DEBTS.draft[clientId];
+    showLoading();
+
+    gsRun("rescheduleDebtDueDate", DEBTS.employee.name, DEBTS.employee.pin, clientId, newDate)
+        .then(function () {
+            DEBTS.openAction = null;
+            delete DEBTS.draft[clientId];
+            fetchDebts();
+        })
+        .catch(function (err) {
+            hideLoading();
+            showError(err);
+        });
+}
+
+function submitDebtStatus(clientId, status) {
+    showLoading();
+
+    gsRun("setDebtStatus", DEBTS.employee.name, DEBTS.employee.pin, clientId, status)
+        .then(function () {
+            fetchDebts();
+        })
+        .catch(function (err) {
+            hideLoading();
+            showError(err);
+        });
+}
+
+function submitDeadDebt(clientId) {
+    const d = debtsAllList().find((x) => String(x.clientId) === String(clientId));
+    const label = d ? `${d.clientName}'s remaining balance of ${money(d.amount - d.amountPaid)}` : "this debt";
+
+    if (!confirm(`Write off ${label} as dead debt?`)) return;
+    submitDebtStatus(clientId, "dead");
+}
+
+// --- Add a short debt (from the separate notebook) ---
+
+function toggleAddShortForm() {
+    const form = document.getElementById("debtsAddShortForm");
+    const isOpen = form.style.display === "flex";
+
+    form.style.display = isOpen ? "none" : "flex";
+
+    if (!isOpen) {
+        document.getElementById("debtsNewName").value = "";
+        document.getElementById("debtsNewPhone").value = "";
+        document.getElementById("debtsNewAmount").value = "";
+        document.getElementById("debtsNewDateGiven").value = debtsToday();
+        document.getElementById("debtsNewDueDate").value = debtsAddDays(debtsToday(), 7);
+        document.getElementById("debtsNewNotes").value = "";
+        document.getElementById("debtsAddShortError").style.display = "none";
+    }
+}
+
+function submitShortDebt() {
+    const name = document.getElementById("debtsNewName").value.trim();
+    const phone = document.getElementById("debtsNewPhone").value.trim();
+    const amount = document.getElementById("debtsNewAmount").value;
+    const dateGiven = document.getElementById("debtsNewDateGiven").value;
+    const dueDate = document.getElementById("debtsNewDueDate").value;
+    const notes = document.getElementById("debtsNewNotes").value.trim();
+    const errorBox = document.getElementById("debtsAddShortError");
+
+    errorBox.style.display = "none";
+    showLoading();
+
+    gsRun(
+        "addShortDebt",
+        DEBTS.employee.name,
+        DEBTS.employee.pin,
+        name,
+        amount,
+        phone,
+        dueDate,
+        dateGiven,
+        notes,
+    )
+        .then(function () {
+            toggleAddShortForm();
+            fetchDebts();
+        })
+        .catch(function (err) {
+            hideLoading();
+            errorBox.textContent = err.message || err;
+            errorBox.style.display = "block";
+        });
+}
+
+// --- Review checklist ---
+
+function openDebtReview() {
+    document.getElementById("debtsReviewPanel").style.display = "flex";
+    renderDebtReview();
+}
+
+function closeDebtReview() {
+    document.getElementById("debtsReviewPanel").style.display = "none";
+}
+
+function renderDebtReview() {
+    const entries = debtsAllLogEntries();
+    const list = document.getElementById("debtsReviewList");
+
+    if (entries.length === 0) {
+        list.innerHTML = `<div class="emptyState">No activity yet.</div>`;
+        return;
+    }
+
+    list.innerHTML = entries
+        .map((e) => {
+            const isReviewed = !!DEBTS.reviewLog[e.id];
+            return `
+                <button type="button" class="debtReviewRow ${isReviewed ? "reviewed" : ""}" onclick="toggleReviewEntry('${e.id}')">
+                    <span class="debtReviewCheck">${isReviewed ? "OK" : ""}</span>
+                    <span class="debtReviewText">
+                        <span class="debtReviewLine"><strong>${escapeHtml(e.clientName)}</strong> - ${escapeHtml(e.note)}</span>
+                        <span class="debtReviewMeta">${escapeHtml(e.actor)} | ${debtsFmtDateTime(e.time)}</span>
+                    </span>
+                </button>`;
+        })
+        .join("");
+}
+
+function toggleReviewEntry(entryId) {
+    gsRun("toggleDebtReviewEntry", DEBTS.employee.name, DEBTS.employee.pin, entryId)
+        .then(function (result) {
+            if (result.reviewed) {
+                DEBTS.reviewLog[entryId] = { by: DEBTS.employee.name, at: "" };
+            } else {
+                delete DEBTS.reviewLog[entryId];
+            }
+            renderDebtReview();
+            renderDebtsHeader();
+        })
+        .catch(showError);
+}

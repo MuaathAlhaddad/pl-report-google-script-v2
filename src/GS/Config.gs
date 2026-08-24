@@ -7,19 +7,17 @@ const CONFIG = {
         SUPPLIERS: "Suppliers",
         EMPLOYEES: "Employees",
         DEBTS: "Debts Snapshot",
+        DEBTS_REVIEW: "Debts Review Log",
     },
 
-    // Options an employee can set on a debt while following up. Kept short
-    // and on-purpose -- this isn't meant to be a full CRM, just enough to
-    // answer "has anyone chased this one yet?" at a glance.
-    DEBT_STATUSES: [
-        "Not Contacted",
-        "Contacted",
-        "Promised to Pay",
-        "Overdue",
-        "Disputed",
-        "Paid",
-    ],
+    // A debt is either being actively chased, fully paid, or written off as
+    // uncollectable ("dead"). "Has anyone chased this one" is answered by
+    // Last Follow Up + the activity log, not a bigger status list.
+    DEBT_STATUS: {
+        ACTIVE: "active",
+        PAID: "paid",
+        DEAD: "dead",
+    },
 
     PROFIT_MARGIN: 0.05,
 

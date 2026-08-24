@@ -261,7 +261,7 @@ function getDaftraDailyTotals(dateStr) {
 // expected, it's meant to be run occasionally for a full snapshot, not on
 // every page load.
 function getDaftraOutstandingDebts() {
-    const balances = {}; // client_id -> { clientId, clientName, amount }
+    const balances = {}; // client_id -> { clientId, clientName, amount, phone }
     let page = 1;
     const limit = 100;
     const MAX_PAGES = 200; // safety valve, ~20,000 invoices
@@ -286,11 +286,16 @@ function getDaftraOutstandingDebts() {
                     .filter(Boolean)
                     .join(" ") ||
                 "Client #" + id;
+            // Field name isn't confirmed against Daftra's docs -- worst case
+            // this stays blank and the WhatsApp reminder button just doesn't
+            // show for that client.
+            const phone = inv.client_phone1 || inv.client_phone || inv.client_mobile || "";
 
             if (!balances[id]) {
-                balances[id] = { clientId: id, clientName: name, amount: 0 };
+                balances[id] = { clientId: id, clientName: name, amount: 0, phone };
             }
             balances[id].amount += unpaid;
+            if (!balances[id].phone && phone) balances[id].phone = phone;
         });
 
         const pagination = payload && payload.pagination;
@@ -304,24 +309,35 @@ function getDaftraOutstandingDebts() {
 }
 
 // Columns in the "Debts Snapshot" sheet. Two kinds of row share it:
-//   Type "Long"  -- pulled from Daftra by this function. Status/Notes/
-//                   Updated By/Updated At are follow-up info an employee
+//   Type "Long"  -- pulled from Daftra by this function. Phone/Amount Owed/
+//                   Snapshot Time are overwritten from fresh Daftra data on
+//                   every refresh; Status/Due Date/Date Given/Last Follow
+//                   Up/Promise Count/Log are follow-up info an employee
 //                   enters in the Debts page and must be preserved across
-//                   refreshes; only Amount Owed/Snapshot Time get
-//                   overwritten from fresh Daftra data.
+//                   refreshes. Amount Paid always stays 0 for Long debts --
+//                   Daftra's summary_unpaid is already net of payments, so
+//                   there's nothing for this app to track separately.
 //   Type "Short" -- entered by hand (addShortDebt() in Debts.gs) for debts
 //                   from the separate notebook that never becomes a
 //                   Daftra invoice. This function never touches those
 //                   rows -- they're carried forward as-is on every run.
+//
+// Log is a JSON array of {id, date, time, actor, note} follow-up entries,
+// newest last -- kept as one JSON string per cell rather than extra sheet
+// columns since its length varies per debt.
 const DEBTS_HEADERS = [
     "Client",
     "Client ID",
     "Type",
     "Amount Owed",
+    "Amount Paid",
     "Status",
-    "Notes",
-    "Updated By",
-    "Updated At",
+    "Phone",
+    "Due Date",
+    "Date Given",
+    "Last Follow Up",
+    "Promise Count",
+    "Log",
     "Snapshot Time",
 ];
 
@@ -329,10 +345,11 @@ const DEBTS_HEADERS = [
 // Snapshot" sheet -- run this from the editor (function dropdown ->
 // refreshDebtsSnapshot -> Run) any time you want up-to-date numbers, or
 // tap "Refresh from Daftra" in the Debts page (employees with edit access
-// only). Only rewrites "Long" (Daftra) rows: any Status/Notes an employee
-// already entered is kept, only the amount and snapshot time change, and
-// a client who no longer owes anything (fully paid) drops off the list.
-// "Short" rows (the manual notebook debts) are left completely untouched.
+// only). Only rewrites "Long" (Daftra) rows: Status/follow-up history an
+// employee already entered is kept, only the amount/phone/snapshot time
+// change, and a client who no longer owes anything (fully paid) drops off
+// the list. "Short" rows (the manual notebook debts) are left completely
+// untouched.
 function refreshDebtsSnapshot() {
     const debts = getDaftraOutstandingDebts();
 
@@ -344,13 +361,13 @@ function refreshDebtsSnapshot() {
     }
 
     const lastRow = sheet.getLastRow();
-    const existingLong = {}; // clientId -> { status, notes, updatedBy, updatedAt }
+    const existingLong = {}; // clientId -> preserved follow-up fields
     const shortRows = []; // carried forward untouched
 
     // Only trust what's already in the sheet if its header row matches the
-    // current column layout -- e.g. right after adding the Type column,
-    // an older snapshot's columns would otherwise get misread into the
-    // wrong fields. If it doesn't match, start clean for this one run.
+    // current column layout -- e.g. right after changing the columns, an
+    // older snapshot's cells would otherwise get misread into the wrong
+    // fields. If it doesn't match, start clean for this one run.
     const currentHeaders =
         lastRow >= 1
             ? sheet.getRange(1, 1, 1, DEBTS_HEADERS.length).getValues()[0]
@@ -372,10 +389,12 @@ function refreshDebtsSnapshot() {
                 }
 
                 existingLong[clientId] = {
-                    status: row[4] || "",
-                    notes: row[5] || "",
-                    updatedBy: row[6] || "",
-                    updatedAt: row[7] || "",
+                    status: row[5] || "",
+                    dueDate: row[7] || "",
+                    dateGiven: row[8] || "",
+                    lastFollowUp: row[9] || "",
+                    promiseCount: row[10] || 0,
+                    log: row[11] || "",
                 };
             });
     }
@@ -394,24 +413,39 @@ function refreshDebtsSnapshot() {
 
         // Daftra is the source of truth for whether a Long debt still
         // exists at all -- if it's showing up here, it's genuinely still
-        // unpaid. A stale "Paid" tag from before (mismarked, or the
-        // amount changed again after being paid down) would otherwise
-        // hide a real debt from the list forever, which is exactly the
-        // "debts getting lost" problem this page exists to prevent.
-        const status =
-            prev.status && prev.status !== "Paid"
-                ? prev.status
-                : CONFIG.DEBT_STATUSES[0];
+        // unpaid. A stale "paid"/"dead" tag from before (mismarked, or the
+        // amount changed again after being paid down) would otherwise hide
+        // a real debt from the list forever, which is exactly the "debts
+        // getting lost" problem this page exists to prevent.
+        const wasResolved = prev.status === "paid" || prev.status === "dead";
+        const status = wasResolved ? CONFIG.DEBT_STATUS.ACTIVE : prev.status || CONFIG.DEBT_STATUS.ACTIVE;
+
+        let log = prev.log || "[]";
+        if (wasResolved) {
+            const entries = parseDebtLog_(log);
+            entries.push({
+                id: Utilities.getUuid(),
+                date: Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd"),
+                time: now.toISOString(),
+                actor: "System",
+                note: `Daftra still shows this unpaid -- reopened from "${prev.status}".`,
+            });
+            log = JSON.stringify(entries);
+        }
 
         return [
             d.clientName,
             d.clientId,
             "Long",
             d.amount,
+            0,
             status,
-            prev.notes || "",
-            prev.updatedBy || "",
-            prev.updatedAt || "",
+            d.phone || "",
+            prev.dueDate || "",
+            prev.dateGiven || "",
+            prev.lastFollowUp || "",
+            prev.promiseCount || 0,
+            log,
             now,
         ];
     });
@@ -433,6 +467,16 @@ function refreshDebtsSnapshot() {
     );
 
     return { longCount: debts.length, longTotal: total, shortCount: shortRows.length };
+}
+
+function parseDebtLog_(raw) {
+    if (!raw) return [];
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        return [];
+    }
 }
 
 // Run manually from the editor to sanity-check credentials and see the raw

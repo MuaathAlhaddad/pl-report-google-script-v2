@@ -13,8 +13,10 @@
         <div id="app">
             <div id="mainPage" style="display: none">
                 <?!= include("Views/dashboard.html"); ?> <?!=
-                include("Views/expenses.html"); ?> <?!=
-                include("Views/debts.html"); ?>
+                include("Views/expenses.html"); ?>
+                <!-- Debts content is fetched on first visit, not baked in
+                     here -- see JS/debts.js's header comment for why. -->
+                <div id="debtsPage" style="display: none"></div>
             </div>
             <?!= include("Views/sales-form.html"); ?>
         </div>

@@ -68,15 +68,15 @@ function getDebtsFollowUpSummary_() {
     const rows = sheet.getRange(2, 1, lastRow - 1, DEBTS_HEADERS.length).getValues();
 
     const debts = rows
-        .filter((row) => row[1] !== "" && row[1] != null && row[4] !== "Paid")
+        .filter((row) => row[1] !== "" && row[1] != null && row[5] === CONFIG.DEBT_STATUS.ACTIVE)
         .map((row) => ({
             clientName: row[0],
-            amount: Number(row[3]) || 0,
-            updatedAt: row[7],
+            amount: (Number(row[3]) || 0) - (Number(row[4]) || 0),
+            lastFollowUp: row[9],
         }));
 
     const total = debts.reduce((sum, d) => sum + d.amount, 0);
-    const untouchedCount = debts.filter((d) => !d.updatedAt).length;
+    const untouchedCount = debts.filter((d) => !d.lastFollowUp).length;
 
     const topDebts = debts
         .slice()
