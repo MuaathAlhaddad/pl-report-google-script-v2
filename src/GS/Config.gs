@@ -5,18 +5,6 @@ const CONFIG = {
         EXPENSE_SETUP: "ExpenseSetup",
         GOALS: "Goals",
         SUPPLIERS: "Suppliers",
-        EMPLOYEES: "Employees",
-        DEBTS: "Debts Snapshot",
-        DEBTS_REVIEW: "Debts Review Log",
-    },
-
-    // A debt is either being actively chased, fully paid, or written off as
-    // uncollectable ("dead"). "Has anyone chased this one" is answered by
-    // Last Follow Up + the activity log, not a bigger status list.
-    DEBT_STATUS: {
-        ACTIVE: "active",
-        PAID: "paid",
-        DEAD: "dead",
     },
 
     PROFIT_MARGIN: 0.05,

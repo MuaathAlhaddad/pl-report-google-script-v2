@@ -14,10 +14,9 @@
             <div id="mainPage" style="display: none">
                 <?!= include("Views/dashboard.html"); ?> <?!=
                 include("Views/expenses.html"); ?>
-                <!-- Debts and Bulk Invoice content are fetched on first visit,
-                     not baked in here -- see JS/debts.js's header comment for
+                <!-- Bulk Invoice content is fetched on first visit, not baked
+                     in here -- see JS/bulkInvoice.js's header comment for
                      why. -->
-                <div id="debtsPage" style="display: none"></div>
                 <div id="bulkInvoicePage" style="display: none"></div>
             </div>
             <?!= include("Views/sales-form.html"); ?>
@@ -26,6 +25,6 @@
         <?!= include("JS/app.js"); ?> <?!= include("JS/insights.js"); ?> <?!=
         include("JS/expenses.js"); ?> <?!= include("JS/router.js"); ?> <?!=
         include("JS/sales.js"); ?> <?!= include("JS/utils.js"); ?> <?!=
-        include("JS/debts.js"); ?> <?!= include("JS/bulkInvoice.js"); ?>
+        include("JS/bulkInvoice.js"); ?>
     </body>
 </html>

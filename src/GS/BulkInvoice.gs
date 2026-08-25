@@ -1,7 +1,6 @@
 // Hands back the Bulk Invoice page's markup/styles/logic for the client to
-// inject on first visit -- same lazy-bundle pattern as the Debts page, see
-// JS/debts.js's header comment for why this isn't just baked into the
-// initial page.
+// inject on first visit -- see JS/bulkInvoice.js's header comment for why
+// this isn't just baked into the initial page.
 function getBulkInvoiceBundle() {
     return {
         html: include("bulkInvoice.html"),
