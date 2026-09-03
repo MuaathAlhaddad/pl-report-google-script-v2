@@ -63,12 +63,17 @@ function findDueInvoiceService_() {
 }
 
 // Daftra's list endpoints paginate, and there's no confirmed server-side
-// name-search filter param for clients, so instead of guessing one wrong, a
-// few pages are pulled up front and the client searches through them in the
-// browser. Bump these if a real account has more than ~500 clients and the
-// picker starts missing results.
-const BULK_INVOICE_LOOKUP_PAGES = 5;
+// name-search filter param for clients, so the full list is pulled up
+// front and the client searches through it in the browser. A fixed
+// 5-page (500 record) cap used to be here -- confirmed 2026-08-25 to
+// silently hide real clients from the picker (client #27, an active
+// debtor, fell outside it once this account passed ~500 clients). Loops
+// until Daftra reports no more pages instead, same pattern as
+// daftraPaginate_() elsewhere in this project; MAX_PAGES is just a safety
+// valve against an infinite loop, not a real ceiling at this account's
+// size (~600 clients, ~1,600 products).
 const BULK_INVOICE_LOOKUP_PAGE_SIZE = 100;
+const BULK_INVOICE_LOOKUP_MAX_PAGES = 200;
 
 // Field names here are guesses cross-checked against Daftra's API docs and
 // third-party client libraries, NOT confirmed against this account -- see
@@ -115,7 +120,7 @@ function searchDaftraClients() {
 function fetchDaftraLookupList_(path, unwrapKey, mapFn) {
     const results = [];
 
-    for (let page = 1; page <= BULK_INVOICE_LOOKUP_PAGES; page++) {
+    for (let page = 1; page <= BULK_INVOICE_LOOKUP_MAX_PAGES; page++) {
         const payload = daftraGet_(path, {
             page,
             limit: BULK_INVOICE_LOOKUP_PAGE_SIZE,
@@ -158,9 +163,16 @@ function createBulkSalesInvoices(dateStr, rows) {
                 draft: 0,
             };
 
-            // Only clients whose Daftra "invoicing method" is Email actually
-            // require this -- harmless to include whenever we have it.
-            if (row.clientEmail) invoiceFields.client_email = row.clientEmail;
+            // Daftra rejects invoice creation outright if it wants to send
+            // by email and there's nothing to send it to (confirmed
+            // 2026-08-25 against client #397, who has no phone/mobile/
+            // email on file at all) -- always send SOMETHING rather than
+            // making every client-without-an-email a hard failure. ".invalid"
+            // is the domain suffix reserved by RFC 2606 specifically for
+            // addresses that are never meant to resolve/be real, so this
+            // can't ever misdeliver to an actual person by coincidence.
+            invoiceFields.client_email =
+                row.clientEmail || `client${row.clientId}@placeholder.invalid`;
 
             const item = {
                 item: service.name,
@@ -171,6 +183,8 @@ function createBulkSalesInvoices(dateStr, rows) {
 
             const invoice = createDaftraInvoice_(invoiceFields, [item], null);
 
+            logDailyEntry_("Invoice", row.clientName, amount, true, `#${invoice.no}`);
+
             return {
                 clientName: row.clientName,
                 success: true,
@@ -178,6 +192,8 @@ function createBulkSalesInvoices(dateStr, rows) {
                 invoiceNo: invoice.no,
             };
         } catch (e) {
+            logDailyEntry_("Invoice", row.clientName, row.amount, false, e.message);
+
             return {
                 clientName: row.clientName,
                 success: false,

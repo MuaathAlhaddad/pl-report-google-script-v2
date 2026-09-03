@@ -1,0 +1,278 @@
+let BP = {
+    clients: [],
+    treasuries: [],
+    rows: [],
+    nextRowId: 1,
+};
+
+function loadBulkPaymentPage() {
+    document.getElementById("bpDate").value = bpTodayDateStr_();
+
+    showLoading();
+
+    gsRun("getBulkPaymentInitData")
+        .then(function (data) {
+            BP.clients = data.clients;
+            BP.treasuries = data.treasuries || [];
+            hideLoading();
+
+            bpRenderTreasuryField();
+
+            if (!BP.rows.length) bpAddRow();
+        })
+        .catch(function (err) {
+            hideLoading();
+            showError(err);
+        });
+}
+
+// Renders a dropdown of real treasury names when the lookup worked, or
+// falls back to a plain numeric field when it didn't (see
+// searchDaftraTreasuries()'s header comment in BulkPayment.gs for why that
+// lookup might come back empty -- the endpoint name is a guess).
+function bpRenderTreasuryField() {
+    const box = document.getElementById("bpTreasuryField");
+
+    if (BP.treasuries.length) {
+        box.innerHTML = `
+            <select id="bpTreasurySelect">
+                ${BP.treasuries
+                    .map((t) => `<option value="${t.id}">${escapeHtml(t.name)}</option>`)
+                    .join("")}
+            </select>
+        `;
+        return;
+    }
+
+    box.innerHTML = `
+        <input
+            type="number"
+            id="bpTreasuryId"
+            placeholder="Treasury ID (leave blank if unsure)"
+        />
+    `;
+}
+
+function bpGetTreasuryId_() {
+    const select = document.getElementById("bpTreasurySelect");
+    if (select) return select.value;
+
+    const input = document.getElementById("bpTreasuryId");
+    return input ? input.value : "";
+}
+
+function bpTodayDateStr_() {
+    const d = new Date();
+    return (
+        d.getFullYear() +
+        "-" +
+        String(d.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(d.getDate()).padStart(2, "0")
+    );
+}
+
+function bpApplyDefaultAmount() {
+    const amount = Number(document.getElementById("bpDefaultAmount").value) || 0;
+
+    BP.rows.forEach((row) => {
+        if (row.amountTouched) return;
+
+        row.amount = amount;
+        const input = document.getElementById("bpAmount_" + row.id);
+        if (input) input.value = amount;
+    });
+
+    bpUpdateSummary();
+}
+
+// ---------- Client rows ----------
+
+function bpAddRow() {
+    const row = {
+        id: BP.nextRowId++,
+        clientId: null,
+        clientName: "",
+        amount: Number(document.getElementById("bpDefaultAmount").value) || 0,
+        amountTouched: false,
+    };
+
+    BP.rows.push(row);
+    bpRenderRows();
+}
+
+function bpRemoveRow(id) {
+    BP.rows = BP.rows.filter((r) => r.id !== id);
+    bpRenderRows();
+}
+
+function bpRenderRows() {
+    const container = document.getElementById("bpRows");
+
+    container.innerHTML = BP.rows
+        .map(
+            (row) => `
+        <div class="bpRow" data-row="${row.id}">
+            <div class="bpSearchBox">
+                <input
+                    type="text"
+                    id="bpClientSearch_${row.id}"
+                    placeholder="Search client..."
+                    autocomplete="off"
+                    value="${escapeAttr(row.clientName)}"
+                    oninput="bpFilterClients(${row.id}, this.value)"
+                    onfocus="bpFilterClients(${row.id}, this.value)"
+                />
+                <div id="bpClientResults_${row.id}" class="bpResults" style="display: none"></div>
+            </div>
+            <input
+                type="number"
+                id="bpAmount_${row.id}"
+                class="bpPriceInput"
+                value="${row.amount}"
+                min="0"
+                oninput="bpUpdateRowAmount(${row.id}, this.value)"
+            />
+            <button type="button" class="bpRemoveRowButton" onclick="bpRemoveRow(${row.id})">×</button>
+        </div>
+    `,
+        )
+        .join("");
+
+    bpUpdateSummary();
+}
+
+function bpUpdateRowAmount(id, value) {
+    const row = BP.rows.find((r) => r.id === id);
+    if (!row) return;
+
+    row.amount = Number(value) || 0;
+    row.amountTouched = true;
+    bpUpdateSummary();
+}
+
+function bpFilterClients(rowId, query) {
+    const q = query.trim().toLowerCase();
+    const matches = q
+        ? BP.clients.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 15)
+        : [];
+
+    const box = document.getElementById("bpClientResults_" + rowId);
+    if (!box) return;
+
+    if (!matches.length) {
+        box.style.display = "none";
+        box.innerHTML = "";
+        return;
+    }
+
+    box.innerHTML = matches
+        .map(
+            (c) => `
+        <div class="bpResultItem" onclick="bpSelectClient(${rowId}, ${c.id})">
+            <span>${escapeHtml(c.name)}</span>
+        </div>
+    `,
+        )
+        .join("");
+    box.style.display = "block";
+}
+
+function bpSelectClient(rowId, clientId) {
+    const client = BP.clients.find((c) => c.id === Number(clientId));
+    const row = BP.rows.find((r) => r.id === Number(rowId));
+    if (!client || !row) return;
+
+    row.clientId = client.id;
+    row.clientName = client.name;
+
+    document.getElementById("bpClientSearch_" + rowId).value = client.name;
+    document.getElementById("bpClientResults_" + rowId).style.display = "none";
+
+    bpUpdateSummary();
+}
+
+function bpUpdateSummary() {
+    const validRows = BP.rows.filter((r) => r.clientId);
+    const total = validRows.reduce((sum, r) => sum + r.amount, 0);
+
+    document.getElementById("bpSummary").innerHTML =
+        `<b>${validRows.length}</b> payment${validRows.length === 1 ? "" : "s"} ready` +
+        ` &nbsp;|&nbsp; Total: <b>${money(total)}</b>`;
+}
+
+// ---------- Submit ----------
+
+function bpSubmit() {
+    const date = document.getElementById("bpDate").value;
+    if (!date) {
+        alert("Pick a date first.");
+        return;
+    }
+
+    const validRows = BP.rows.filter((r) => r.clientId && r.amount > 0);
+    if (!validRows.length) {
+        alert("Add at least one client with an amount.");
+        return;
+    }
+
+    const total = validRows.reduce((sum, r) => sum + r.amount, 0);
+    const names = validRows.map((r) => r.clientName).join(", ");
+    const paymentMethod = document.getElementById("bpPaymentMethod").value.trim();
+    const treasuryId = bpGetTreasuryId_();
+
+    const confirmed = confirm(
+        `Record ${validRows.length} payment(s) dated ${date}?\n\n` +
+            `Clients: ${names}\n` +
+            `Total: ${money(total)}\n\n` +
+            `This creates real payments in Daftra, credited to each client's account balance.`,
+    );
+    if (!confirmed) return;
+
+    document.getElementById("bpSubmitButton").disabled = true;
+    showLoading();
+
+    gsRun(
+        "createBulkClientPayments",
+        date,
+        paymentMethod,
+        treasuryId,
+        validRows.map((r) => ({
+            clientId: r.clientId,
+            clientName: r.clientName,
+            amount: r.amount,
+        })),
+    )
+        .then(function (results) {
+            hideLoading();
+            document.getElementById("bpSubmitButton").disabled = false;
+            bpRenderResults(results);
+        })
+        .catch(function (err) {
+            hideLoading();
+            document.getElementById("bpSubmitButton").disabled = false;
+            showError(err);
+        });
+}
+
+function bpRenderResults(results) {
+    const okCount = results.filter((r) => r.success).length;
+
+    // Shows exactly what Daftra saved (read back right after creating) --
+    // temporary diagnostic while chasing "success message but the payment
+    // never shows up in Daftra" (2026-08-28). Safe to remove once that's
+    // confirmed fixed.
+    document.getElementById("bpResults").innerHTML = `
+        <div class="bpResultsHeader">${okCount}/${results.length} payment(s) recorded</div>
+        ${results
+            .map((r) =>
+                r.success
+                    ? `<div class="bpResultRow bpResultOk">
+                           ✅ ${escapeHtml(r.clientName)} — Payment #${escapeHtml(String(r.paymentId))}
+                           <pre class="bpVerifyDump">${escapeHtml(JSON.stringify(r.verified, null, 2))}</pre>
+                       </div>`
+                    : `<div class="bpResultRow bpResultFail">❌ ${escapeHtml(r.clientName)} — ${escapeHtml(r.error)}</div>`,
+            )
+            .join("")}
+    `;
+}

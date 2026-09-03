@@ -108,8 +108,28 @@ function createDaftraInvoice_(invoiceFields, items, payments) {
     const body = response.getContentText();
 
     if (code < 200 || code >= 300) {
+        // The generic top-level "message" (e.g. "فشل في حفظ الفاتورة...")
+        // is useless on its own -- Daftra puts the actual per-field reason
+        // in "errors", which a short slice() of the raw body was cutting
+        // off before anyone could see it (confirmed 2026-08-25: the
+        // truncated message ended mid-sentence with no closing quote).
+        let detail = body;
+        try {
+            const parsed = JSON.parse(body);
+            // The real field is "validation_errors", not "errors" --
+            // confirmed 2026-08-25 against a real rejected invoice (a
+            // missing client_email). This originally guessed "errors"
+            // and only "worked" because the fallback to the raw body
+            // happened to be short enough to fit in the slice() below.
+            if (parsed && parsed.validation_errors) {
+                detail = JSON.stringify(parsed.validation_errors);
+            }
+        } catch (e) {
+            // Not JSON -- fall back to the raw body below.
+        }
+
         throw new Error(
-            `Daftra API error ${code} creating invoice: ${body.slice(0, 300)}`,
+            `Daftra API error ${code} creating invoice: ${detail.slice(0, 1000)}`,
         );
     }
 
@@ -120,6 +140,107 @@ function createDaftraInvoice_(invoiceFields, items, payments) {
         id: invoice.id,
         no: invoice.no || invoice.invoice_number || invoice.id,
     };
+}
+
+// Creates ONE client payment -- money credited straight to a client's
+// account balance, NOT tied to a specific invoice (that's what
+// client_payments.json is for; see getDaftraClientAccountPayments() above
+// for the read-side distinction from invoice_payments.json). Daftra applies
+// it against the client's outstanding balance itself.
+//
+// Payload shape confirmed working against this account via the sibling
+// employee-debts-api project's addDaftraClientPayment() (same Daftra
+// account, ported here for the same bulk-entry use case as
+// createDaftraInvoice_ above). paymentMethod/treasuryId are optional but
+// often effectively required in practice: Daftra's own UI always makes you
+// pick both when recording a payment by hand, and a payment with no
+// treasury to land in doesn't make accounting sense, so a real account may
+// reject (or silently mishandle) a payment missing them even though the API
+// docs list every ClientPayment/InvoicePayment field as "optional".
+function createDaftraClientPayment_(clientId, amount, dateStr, notes, paymentMethod, treasuryId) {
+    const { subdomain, apiKey } = getDaftraConfig_();
+
+    const fields = {
+        client_id: clientId,
+        amount: amount,
+        date: dateStr,
+        notes: notes || "",
+        // Confirmed 2026-08-28: without this, the API returns a 2xx success
+        // and an id, but the payment never shows up in Daftra -- it silently
+        // lands in a non-"Completed" status (docs list the enum as 0=Not
+        // completed, 1=Completed, 2=Pending, 3=Failed, 4=Overpaid,
+        // 5=Draft, without saying what a new payment defaults to). Since
+        // this tool only ever records money that was actually received,
+        // Completed is always the right value here, not something to make
+        // configurable.
+        status: 1,
+    };
+
+    if (paymentMethod) fields.payment_method = paymentMethod;
+    if (treasuryId) fields.treasury_id = Number(treasuryId);
+
+    const payload = { ClientPayment: fields };
+
+    const url = `https://${subdomain}.daftra.com/api2/client_payments.json`;
+
+    const response = UrlFetchApp.fetch(url, {
+        method: "post",
+        contentType: "application/json",
+        headers: {
+            APIKEY: apiKey,
+            Accept: "application/json",
+        },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true,
+    });
+
+    const code = response.getResponseCode();
+    const body = response.getContentText();
+
+    if (code < 200 || code >= 300) {
+        let detail = body;
+        try {
+            const parsed = JSON.parse(body);
+            if (parsed && parsed.validation_errors) {
+                detail = JSON.stringify(parsed.validation_errors);
+            }
+        } catch (e) {
+            // Not JSON -- fall back to the raw body below.
+        }
+
+        throw new Error(
+            `Daftra API error ${code} creating client payment: ${detail.slice(0, 1000)}`,
+        );
+    }
+
+    const result = JSON.parse(body);
+    const payment = daftraUnwrap_(result, "ClientPayment") || result;
+
+    // A 2xx with no real id means something looked like success without
+    // actually creating anything -- treat that as a failure instead of
+    // reporting a false "success" back to the Bulk Payment page.
+    if (!payment || !payment.id) {
+        throw new Error(
+            `Daftra returned ${code} but no payment id -- nothing was actually created. Response: ${body.slice(0, 500)}`,
+        );
+    }
+
+    // Read it straight back rather than trusting the create response alone
+    // -- confirmed 2026-08-28: a real-looking id (#16658) came back from
+    // POST, but the payment never showed up in Daftra's UI. This tells us
+    // whether the record is genuinely retrievable via the API afterward,
+    // and if so, what its actual saved fields are (status/treasury/amount
+    // can silently differ from what was sent). A failure here doesn't
+    // un-create the payment -- it's diagnostic only.
+    let verified = null;
+    try {
+        const checkPayload = daftraGet_(`client_payments/${payment.id}.json`);
+        verified = daftraUnwrap_(checkPayload, "ClientPayment") || checkPayload;
+    } catch (e) {
+        verified = { readBackError: e.message };
+    }
+
+    return { id: payment.id, verified };
 }
 
 // Daftra's list endpoints aren't 100% consistent about the wrapper key
@@ -140,6 +261,7 @@ function daftraExtractList_(payload) {
             "Income",
             "Product",
             "Client",
+            "Treasury",
             "items",
         ];
 
@@ -412,4 +534,23 @@ function testDaftraProductsAndClients() {
 
     Logger.log("--- Mapped clients (searchDaftraClients) ---");
     Logger.log(JSON.stringify(searchDaftraClients().slice(0, 5), null, 2));
+}
+
+// Run manually from the editor if the Bulk Payment page's Treasury dropdown
+// is empty -- "treasuries.json" (see searchDaftraTreasuries() in
+// BulkPayment.gs) is a guessed endpoint name, not confirmed against this
+// account. This logs the raw response so you can see whether the endpoint
+// exists at all and, if so, what the real field names are.
+function testDaftraTreasuries() {
+    Logger.log("--- Raw treasuries response (page 1) ---");
+    try {
+        Logger.log(
+            JSON.stringify(daftraGet_("treasuries.json", { page: 1, limit: 20 }), null, 2),
+        );
+    } catch (e) {
+        Logger.log("Request failed: " + e.message);
+    }
+
+    Logger.log("--- Mapped treasuries (searchDaftraTreasuries) ---");
+    Logger.log(JSON.stringify(searchDaftraTreasuries(), null, 2));
 }

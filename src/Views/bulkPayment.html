@@ -1,0 +1,59 @@
+<div class="pageHeader">
+    <div>
+        <div class="pageTitle">💵 Bulk Client Payments</div>
+        <div class="pageSubtitle">
+            Same date, one payment per client — credited to their account
+            balance
+        </div>
+    </div>
+</div>
+
+<div class="formCard bpCard">
+    <label>Date</label>
+    <input type="date" id="bpDate" />
+
+    <label>Default Amount</label>
+    <input
+        type="number"
+        id="bpDefaultAmount"
+        value="0"
+        oninput="bpApplyDefaultAmount()"
+    />
+
+    <label>Payment Method</label>
+    <input
+        type="text"
+        id="bpPaymentMethod"
+        value="Cash"
+        placeholder="Must match a payment method configured in Daftra"
+    />
+
+    <label>Treasury</label>
+    <div id="bpTreasuryField"></div>
+
+    <div class="sectionTitle bpRowsTitle">Clients</div>
+
+    <div id="bpRows" class="bpRows"></div>
+
+    <button type="button" class="bpAddRowButton" onclick="bpAddRow()">
+        + Add Client
+    </button>
+
+    <div id="bpSummary" class="bpSummary"></div>
+
+    <div class="wizardButtons">
+        <button type="button" class="bpCancelButton" onclick="showDashboard()">
+            Cancel
+        </button>
+        <button
+            type="button"
+            id="bpSubmitButton"
+            class="bpSubmitButton"
+            onclick="bpSubmit()"
+        >
+            Record Payments
+        </button>
+    </div>
+
+    <div id="bpResults" class="bpResultsLog"></div>
+</div>
