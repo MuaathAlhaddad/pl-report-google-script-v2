@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A Google Apps Script web app, container-bound to a Google Sheet, that a small shop's owner uses every night to file a daily cash/sales report. It auto-fills several fields from Daftra (an external invoicing/ERP SaaS) via its JSON API, and includes a few "bulk data entry" tools (creating multiple Daftra invoices/payments at once) that also talk to Daftra directly.
 
+For how this project fits together with `employee-debts-api` and `employee-debts-app` (shared Sheet, shared Daftra account), see the [architecture diagram](https://claude.ai/code/artifact/5fd8bd90-a0b1-4389-926a-859cb014fa91).
+
 ## Development workflow
 
 - **Never run `node build.js` or `clasp push` manually.** The user keeps `npm run watch` (chokidar) running in a terminal at all times; it rebuilds and pushes to the live Apps Script project automatically on every save under `src/`. Just edit and save.
