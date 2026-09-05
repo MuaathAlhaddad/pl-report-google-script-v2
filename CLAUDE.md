@@ -6,11 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A Google Apps Script web app, container-bound to a Google Sheet, that a small shop's owner uses every night to file a daily cash/sales report. It auto-fills several fields from Daftra (an external invoicing/ERP SaaS) via its JSON API, and includes a few "bulk data entry" tools (creating multiple Daftra invoices/payments at once) that also talk to Daftra directly.
 
-For how this project fits together with `employee-debts-api` and `employee-debts-app` (shared Sheet, shared Daftra account), see the [architecture diagram](https://claude.ai/code/artifact/5fd8bd90-a0b1-4389-926a-859cb014fa91).
+For how this project fits together with `employee-debts-api` and `employee-debts-app` (shared Sheet, shared Daftra account), see the [architecture diagram](https://claude.ai/code/artifact/5fd8bd90-a0b1-4389-926a-859cb014fa91) and, for a version-controlled fallback that doesn't depend on that external link surviving, this repo's own [ARCHITECTURE.md](ARCHITECTURE.md).
+
+**Before making a non-trivial change, check [DECISIONS.md](DECISIONS.md) first** — dated business/architecture decisions and confirmed incidents that aren't otherwise visible from reading the current code.
 
 ## Development workflow
 
 - **Never run `node build.js` or `clasp push` manually.** The user keeps `npm run watch` (chokidar) running in a terminal at all times; it rebuilds and pushes to the live Apps Script project automatically on every save under `src/`. Just edit and save.
+- **Hard rule, with one deliberate exception for debugging:** because `npm run watch` auto-pushes to the live `@HEAD` URL on every save, *every* save here is already "production" in a way the other two repos' `clasp push` isn't — there's no separate "just testing" push vs. a real deploy step. So: an **intentional, working change** must get a git commit promptly (with a `DECISIONS.md` entry if it's the kind of change that file covers) — not batched up across a session. A **momentary, exploratory edit you're actively iterating on** (e.g. tweaking a value to see what the watcher pushes, mid-debug) doesn't need a commit for every single save, but don't let it sit uncommitted once you've settled on the real version, and never describe an uncommitted save as a finished change. The sibling `employee-debts-api` repo has a documented real incident of exactly the batched-catch-up failure mode (see that repo's `KNOWN_ISSUES.md`) — a run of live changes was never committed until a later, much less detailed catch-up commit.
 - The live web app URL is the `@HEAD` deployment, which always serves the latest pushed code — `clasp push` alone updates it immediately, no `clasp deploy` needed for normal iteration. `clasp deploy` (no flags) instead creates a new *versioned* deployment, unrelated to that URL.
 - If a fix seems to "not take effect," suspect browser/iframe caching (hard refresh, incognito) before re-debugging the source.
 - `npm run format` — Prettier (4-space tabs, double quotes, 80 print width; see `.prettierrc`).
