@@ -204,9 +204,20 @@ function submitData() {
             Number(document.getElementById("startingCash").value) || 0,
     };
 
+    // Disabled until the server answers, so a double-click can't submit the
+    // same report twice.
+    const saveButton = document.getElementById("saveButton");
+    saveButton.disabled = true;
+
     google.script.run
-        .withSuccessHandler(showDashboard)
-        .withFailureHandler(showError)
+        .withSuccessHandler(function () {
+            saveButton.disabled = false;
+            showDashboard();
+        })
+        .withFailureHandler(function (err) {
+            saveButton.disabled = false;
+            showError(err);
+        })
         .saveReport(data);
 }
 

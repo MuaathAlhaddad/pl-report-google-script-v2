@@ -83,10 +83,49 @@ function getReport(row) {
     };
 }
 
+// True if any row already in the Sales sheet is for `dateStr` (yyyy-MM-dd).
+function salesDateExists_(sheet, dateStr) {
+    const lastRow = sheet.getLastRow();
+
+    if (lastRow <= 1) return false;
+
+    const tz = Session.getScriptTimeZone();
+
+    return sheet
+        .getRange(2, 1, lastRow - 1, 1)
+        .getValues()
+        .some(
+            ([value]) =>
+                value instanceof Date &&
+                Utilities.formatDate(value, tz, "yyyy-MM-dd") === dateStr,
+        );
+}
+
 function saveReport(data) {
+    // Serialize saves so a double-click/retry can't slip a second row in
+    // between the duplicate check and the write below.
+    const lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+
+    try {
+        return saveReportLocked_(data);
+    } finally {
+        lock.releaseLock();
+    }
+}
+
+function saveReportLocked_(data) {
     const sheet = SpreadsheetApp.getActive().getSheetByName(
         CONFIG.SHEETS.SALES,
     );
+
+    if (salesDateExists_(sheet, data.date)) {
+        throw new Error(
+            "A report for " +
+                data.date +
+                " already exists in the Sales sheet, so this one was not saved.",
+        );
+    }
 
     const paymentInfo = calculatePayments(data.payments);
 

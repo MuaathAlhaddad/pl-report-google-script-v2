@@ -12,6 +12,20 @@ full technical detail on each.
 
 ---
 
+## 2026-09-19 — Sales reports: one row per date, enforced server-side
+
+**Decision:** `saveReport()` (`Sales.gs`) rejects a save if the Sales sheet already has a row for
+that date, and runs under `LockService.getScriptLock()` so the check and the write can't
+interleave. The form's Save button is also disabled while the request is in flight.
+
+**Why:** Confirmed incident — 11/09/2026 ended up with two identical rows in the Sales sheet
+(identical in every column, i.e. the same submission saved twice, consistent with a double-click
+or retry while the first save was still running). Nothing prevented it: the Save button stayed
+clickable until the server responded, and `saveReport()` blindly appended at `getLastRow() + 1`.
+The duplicate check is server-side because the client-side disable alone wouldn't stop two tabs or
+a retry after a timeout. The already-duplicated 11/09 row was not removed automatically — delete
+the extra row by hand.
+
 ## 2026-08-25 — Creditor dropdown kept as a fixed list, not live-synced further
 
 **Decision:** The `Employees` sheet (shared with `employee-debts-api`) is read here read-only,
