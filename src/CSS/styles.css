@@ -166,7 +166,8 @@ body {
     margin: auto;
 }
 
-.formCard label {
+.formCard label,
+.modalBody label {
     display: block;
 
     margin-top: 15px;
@@ -176,7 +177,8 @@ body {
     font-weight: bold;
 }
 
-.formCard input {
+.formCard input,
+.modalBody input {
     width: 100%;
 
     box-sizing: border-box;
@@ -190,13 +192,15 @@ body {
     font-size: 15px;
 }
 
-.formCard input:focus {
+.formCard input:focus,
+.modalBody input:focus {
     outline: none;
 
     border-color: #1976d2;
 }
 
-.formCard input[readonly] {
+.formCard input[readonly],
+.modalBody input[readonly] {
     background: #f5f7fa;
 
     color: #555;
