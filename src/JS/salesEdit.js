@@ -28,7 +28,12 @@ function openEditModal(isoDate) {
 function fillEditForm(report) {
     document.getElementById("editDateBadge").textContent =
         formatEditDateBadge(report.date);
-    document.getElementById("editDateDisplay").value = report.date;
+    // report.date is yyyy-MM-dd (ISO, from getReportForEdit); shown here as
+    // dd/MM/yyyy to match how every other date in the app is displayed.
+    document.getElementById("editDateDisplay").value = report.date
+        .split("-")
+        .reverse()
+        .join("/");
     document.getElementById("editStartingCash").value = report.startingCash;
 
     document.getElementById("editCash").value = report.cash;
