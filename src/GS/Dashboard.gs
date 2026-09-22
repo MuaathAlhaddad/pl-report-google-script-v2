@@ -48,6 +48,12 @@ function getAllSalesRows() {
 
             date: raw[0],
 
+            // Kept alongside the locale-formatted `date` below (which
+            // getSales() overwrites) as a stable lookup key for editing --
+            // never the row number, which can shift if the sheet is
+            // sorted/edited by hand.
+            isoDate: Utilities.formatDate(raw[0], tz, "yyyy-MM-dd"),
+
             period: Utilities.formatDate(raw[0], tz, "yyyy-MM"),
 
             hijriPeriod: formatHijriPeriod(hijriFormatter, raw[0]),

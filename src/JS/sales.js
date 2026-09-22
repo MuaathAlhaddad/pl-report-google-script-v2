@@ -16,6 +16,10 @@ function loadSalesDashboard() {
 }
 
 function renderSalesDashboard(data) {
+    // Stashed so a successful edit can refresh the table/cards in place
+    // (see submitEditForm() in salesEdit.js) without a second server call.
+    APP.salesDashboard = data;
+
     let html = `
 
     <div class="pageHeader">
@@ -162,6 +166,7 @@ function renderSalesTable(rows) {
 <th>Withdrawal</th>
 <th>Deposit</th>
 <th>Total</th>
+<th></th>
 
 </tr>
 
@@ -195,6 +200,16 @@ function renderSalesTable(rows) {
 <td${r.depositNote ? ` class="hasNote" title="${escapeAttr(r.depositNote)}"` : ""}>${money(r.cashDeposit)}${r.depositNote ? " 📝" : ""}</td>
 
 <td>${money(r.totalSales)}</td>
+
+<td class="editCell">
+    <button
+        type="button"
+        class="editRowBtn"
+        onclick="openEditModal('${r.isoDate}')"
+        title="Edit this report"
+        aria-label="Edit report for ${r.date}"
+    >✎</button>
+</td>
 
 </tr>
 

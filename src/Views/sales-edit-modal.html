@@ -1,0 +1,175 @@
+<div id="editModalOverlay" class="modalOverlay">
+    <div
+        class="modalCard"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Edit sales report"
+    >
+        <div class="modalContext">
+            <span class="pagePeriod" id="editDateBadge"></span>
+
+            <button
+                type="button"
+                class="modalCloseBtn"
+                onclick="requestCloseEditModal()"
+                aria-label="Close"
+            >
+                ✕
+            </button>
+        </div>
+
+        <div class="modalBody">
+            <div class="formRowGroup">
+                <div class="formFieldGroup">
+                    <label>Date</label>
+                    <input type="text" id="editDateDisplay" readonly />
+                </div>
+
+                <div class="formFieldGroup">
+                    <label>Starting Cash</label>
+                    <input type="number" id="editStartingCash" readonly />
+                </div>
+            </div>
+
+            <div class="sectionTitle">Cash</div>
+
+            <div class="formRowGroup">
+                <div class="formFieldGroup">
+                    <label>Closing Cash</label>
+                    <input type="number" id="editCash" />
+                    <div class="fieldError" id="editCashError"></div>
+                </div>
+            </div>
+
+            <div class="sectionTitle">Daftra Numbers</div>
+
+            <div class="formRowGroup">
+                <div class="formFieldGroup">
+                    <label>Credit Invoices</label>
+                    <input type="number" id="editCreditInvoices" />
+                    <div class="fieldError" id="editCreditInvoicesError"></div>
+                </div>
+
+                <div class="formFieldGroup">
+                    <label>Customer Payments</label>
+                    <input type="number" id="editCustomerPayments" />
+                    <div
+                        class="fieldError"
+                        id="editCustomerPaymentsError"
+                    ></div>
+                </div>
+            </div>
+
+            <div class="formFieldGroup">
+                <label>Other Expenses</label>
+                <input type="number" id="editOtherExpenses" />
+                <div class="fieldError" id="editOtherExpensesError"></div>
+            </div>
+
+            <div class="sectionTitle">Supplier Payments</div>
+
+            <label>Payments</label>
+            <input
+                type="text"
+                id="editPayments"
+                placeholder="500+300+1200"
+                oninput="updateEditPaymentsPreview()"
+            />
+            <div id="editPaymentsInfo"></div>
+            <div class="fieldError" id="editPaymentsError"></div>
+
+            <div class="sectionTitle">Daily Expense</div>
+
+            <div class="expense-cards" id="editExpenseCards">
+                <div
+                    class="expense-card"
+                    data-value="285"
+                    onclick="selectEditExpense(this, 285)"
+                >
+                    <div class="title">Normal Day<span>285</span></div>
+                </div>
+
+                <div
+                    class="expense-card"
+                    data-value="335"
+                    onclick="selectEditExpense(this, 335)"
+                >
+                    <div class="title">Heavy Day<span>335</span></div>
+                </div>
+            </div>
+
+            <input type="hidden" id="editDailyExpense" value="285" />
+
+            <div class="sectionTitle">Cash Movements</div>
+
+            <div class="formRowGroup">
+                <div class="formFieldGroup">
+                    <label>Cash Withdrawal</label>
+                    <input
+                        type="number"
+                        id="editCashWithdrawal"
+                        oninput="toggleEditNoteField('editCashWithdrawal', 'editWithdrawalNoteGroup')"
+                    />
+                    <div class="fieldError" id="editCashWithdrawalError"></div>
+                </div>
+
+                <div class="formFieldGroup">
+                    <label>Cash Deposit</label>
+                    <input
+                        type="number"
+                        id="editCashDeposit"
+                        oninput="toggleEditNoteField('editCashDeposit', 'editDepositNoteGroup')"
+                    />
+                    <div class="fieldError" id="editCashDepositError"></div>
+                </div>
+            </div>
+
+            <div class="formRowGroup">
+                <div
+                    class="formFieldGroup"
+                    id="editWithdrawalNoteGroup"
+                    style="display: none"
+                >
+                    <label>Withdrawal Note</label>
+                    <input
+                        type="text"
+                        id="editWithdrawalNote"
+                        placeholder="Where did the money go? (optional)"
+                    />
+                </div>
+
+                <div
+                    class="formFieldGroup"
+                    id="editDepositNoteGroup"
+                    style="display: none"
+                >
+                    <label>Deposit Note</label>
+                    <input
+                        type="text"
+                        id="editDepositNote"
+                        placeholder="Where did the money come from? (optional)"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <div class="modalActions">
+            <button
+                type="button"
+                class="modalCancelBtn"
+                onclick="requestCloseEditModal()"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                id="editSaveButton"
+                class="modalSaveBtn"
+                onclick="submitEditForm()"
+            >
+                Save
+            </button>
+        </div>
+    </div>
+</div>

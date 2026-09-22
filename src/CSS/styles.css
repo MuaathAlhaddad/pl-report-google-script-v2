@@ -1082,4 +1082,193 @@ body {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* ---------- Edit Sales Report modal ---------- */
+
+.editCell {
+    width: 46px;
+}
+
+.editRowBtn {
+    border: none;
+    background: #eef4fb;
+    color: #1976d2;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.editRowBtn:hover {
+    background: #dbeafe;
+}
+
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        opacity 0.15s ease,
+        visibility 0.15s;
+    visibility: hidden;
+}
+
+.modalOverlay.open {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+}
+
+.modalCard {
+    background: white;
+    width: 100%;
+    max-width: 560px;
+    max-height: 88vh;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    padding: 20px 24px 16px;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(14px) scale(0.98);
+    opacity: 0;
+    transition:
+        transform 0.18s ease,
+        opacity 0.18s ease;
+}
+
+.modalOverlay.open .modalCard {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+.modalContext {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    flex: none;
+}
+
+.modalCloseBtn {
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: #f1f3f5;
+    color: #555;
+    font-size: 14px;
+    cursor: pointer;
+    flex: none;
+}
+
+.modalCloseBtn:hover {
+    background: #e5e7eb;
+}
+
+.modalBody {
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.modalBody .sectionTitle {
+    margin-top: 22px;
+}
+
+.modalBody .formRowGroup:first-child {
+    margin-top: 0;
+}
+
+.modalActions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid #eee;
+    flex: none;
+}
+
+.modalCancelBtn,
+.modalSaveBtn {
+    padding: 12px 22px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.modalCancelBtn {
+    background: #eceff1;
+    color: #444;
+}
+
+.modalCancelBtn:hover {
+    background: #e0e0e0;
+}
+
+.modalSaveBtn {
+    background: #2e7d32;
+    color: white;
+    min-width: 110px;
+}
+
+.modalSaveBtn:hover {
+    background: #1b5e20;
+}
+
+.modalSaveBtn:disabled {
+    background: #a5d6a7;
+    cursor: default;
+}
+
+.fieldError {
+    display: none;
+    color: #c62828;
+    font-size: 12px;
+    margin-top: 6px;
+}
+
+.fieldError.show {
+    display: block;
+}
+
+.formFieldGroup.hasError input,
+#editPayments.hasError {
+    border-color: #c62828;
+}
+
+@media (max-width: 640px) {
+    .modalOverlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .modalCard {
+        max-width: 100%;
+        max-height: 92vh;
+        border-radius: 16px 16px 0 0;
+        padding: 18px 18px 14px;
+    }
+
+    .modalActions {
+        position: sticky;
+        bottom: 0;
+        background: white;
+    }
+
+    .modalCancelBtn,
+    .modalSaveBtn {
+        flex: 1;
+    }
+}
 

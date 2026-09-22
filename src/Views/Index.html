@@ -20,12 +20,14 @@
                 <div id="bulkInvoicePage" style="display: none"></div>
                 <div id="bulkPaymentPage" style="display: none"></div>
             </div>
-            <?!= include("Views/sales-form.html"); ?>
+            <?!= include("Views/sales-form.html"); ?> <?!=
+            include("Views/sales-edit-modal.html"); ?>
         </div>
 
         <?!= include("JS/app.js"); ?> <?!= include("JS/insights.js"); ?> <?!=
         include("JS/expenses.js"); ?> <?!= include("JS/router.js"); ?> <?!=
-        include("JS/sales.js"); ?> <?!= include("JS/utils.js"); ?> <?!=
-        include("JS/bulkInvoice.js"); ?> <?!= include("JS/bulkPayment.js"); ?>
+        include("JS/sales.js"); ?> <?!= include("JS/salesEdit.js"); ?> <?!=
+        include("JS/utils.js"); ?> <?!= include("JS/bulkInvoice.js"); ?> <?!=
+        include("JS/bulkPayment.js"); ?>
     </body>
 </html>
