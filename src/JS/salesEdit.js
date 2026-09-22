@@ -220,6 +220,16 @@ function validateEditForm() {
     return fields;
 }
 
+// Delete and Save can't both be in flight at once -- disable all three
+// modal action buttons together so a click on one can't race the other.
+function setModalActionsBusy(busy) {
+    ["editDeleteButton", "editCancelButton", "editSaveButton"].forEach(
+        function (id) {
+            document.getElementById(id).disabled = busy;
+        },
+    );
+}
+
 function submitEditForm() {
     if (SALES_EDIT.saving) return;
 
@@ -227,16 +237,16 @@ function submitEditForm() {
     if (!fields) return;
 
     SALES_EDIT.saving = true;
+    setModalActionsBusy(true);
 
     const saveButton = document.getElementById("editSaveButton");
-    saveButton.disabled = true;
     const originalLabel = saveButton.textContent;
     saveButton.textContent = "Saving…";
 
     gsRun("updateReport", SALES_EDIT.originalDate, fields)
         .then(function (result) {
             SALES_EDIT.saving = false;
-            saveButton.disabled = false;
+            setModalActionsBusy(false);
             saveButton.textContent = originalLabel;
 
             renderSalesDashboard(result.dashboard);
@@ -252,8 +262,58 @@ function submitEditForm() {
         })
         .catch(function (err) {
             SALES_EDIT.saving = false;
-            saveButton.disabled = false;
+            setModalActionsBusy(false);
             saveButton.textContent = originalLabel;
+            showError(err);
+        });
+}
+
+function requestDeleteReport() {
+    if (SALES_EDIT.saving || !SALES_EDIT.originalDate) return;
+
+    const dateLabel = document.getElementById("editDateDisplay").value;
+
+    if (
+        !confirm(
+            "Delete the sales report for " +
+                dateLabel +
+                "?\n\nThis removes the row from the Sales sheet. It can't " +
+                "be undone from here.",
+        )
+    ) {
+        return;
+    }
+
+    const dateToDelete = SALES_EDIT.originalDate;
+
+    SALES_EDIT.saving = true;
+    setModalActionsBusy(true);
+
+    const deleteButton = document.getElementById("editDeleteButton");
+    const originalLabel = deleteButton.textContent;
+    deleteButton.textContent = "Deleting…";
+
+    gsRun("deleteReport", dateToDelete)
+        .then(function (result) {
+            SALES_EDIT.saving = false;
+            setModalActionsBusy(false);
+            deleteButton.textContent = originalLabel;
+
+            renderSalesDashboard(result.dashboard);
+            closeEditModal();
+
+            if (result.hadCashImpact && !result.isLatest) {
+                alert(
+                    "Deleted. Note: this wasn't the most recent report, so " +
+                        "later days' Starting Cash won't automatically " +
+                        "update to reflect its removal.",
+                );
+            }
+        })
+        .catch(function (err) {
+            SALES_EDIT.saving = false;
+            setModalActionsBusy(false);
+            deleteButton.textContent = originalLabel;
             showError(err);
         });
 }

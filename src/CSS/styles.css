@@ -1192,12 +1192,44 @@ body {
 
 .modalActions {
     display: flex;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
-    justify-content: flex-end;
+    justify-content: space-between;
     margin-top: 18px;
     padding-top: 14px;
     border-top: 1px solid #eee;
     flex: none;
+}
+
+.modalActionsRight {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+/* Kept out of .modalActionsRight, on the opposite side from Save, so a
+   Delete tap can't land near a Save tap by accident. */
+.modalDeleteBtn {
+    border: none;
+    background: none;
+    color: #c62828;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 10px 10px;
+    border-radius: 8px;
+    min-height: 44px;
+}
+
+.modalDeleteBtn:hover {
+    background: #fdecea;
+}
+
+.modalDeleteBtn:disabled {
+    color: #e6a4a4;
+    cursor: default;
+    background: none;
 }
 
 .modalCancelBtn,
@@ -1268,6 +1300,19 @@ body {
         position: sticky;
         bottom: 0;
         background: white;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    /* Delete stays on its own row above Cancel/Save, deliberately away from
+       the bottom-of-thumb zone those two sit in. */
+    .modalDeleteBtn {
+        align-self: center;
+    }
+
+    .modalActionsRight {
+        margin-left: 0;
+        width: 100%;
     }
 
     .modalCancelBtn,

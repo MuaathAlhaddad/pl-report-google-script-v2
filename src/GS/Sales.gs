@@ -295,6 +295,33 @@ const SALES_EDIT_LOG_HEADERS = [
     "New Value",
 ];
 
+function getOrCreateSalesEditLogSheet_() {
+    const ss = SpreadsheetApp.getActive();
+    let sheet = ss.getSheetByName(SALES_EDIT_LOG_SHEET);
+
+    if (!sheet) {
+        sheet = ss.insertSheet(SALES_EDIT_LOG_SHEET);
+        sheet
+            .getRange(1, 1, 1, SALES_EDIT_LOG_HEADERS.length)
+            .setValues([SALES_EDIT_LOG_HEADERS])
+            .setFontWeight("bold");
+        sheet.setFrozenRows(1);
+    }
+
+    return sheet;
+}
+
+// Active user identity isn't always available depending on the
+// deployment's access settings -- log anonymously rather than fail
+// the whole edit/delete over it.
+function currentEditorEmail_() {
+    try {
+        return Session.getActiveUser().getEmail() || "unknown";
+    } catch (e) {
+        return "unknown";
+    }
+}
+
 // One row per changed field, so what actually changed is readable at a
 // glance without diffing two full report snapshots by hand -- same
 // get-or-create-sheet convention as DailyEntryLog.gs's logDailyEntry_().
@@ -319,28 +346,9 @@ function logSalesEdit_(reportDate, before, after) {
 
     if (!changed.length) return;
 
-    const ss = SpreadsheetApp.getActive();
-    let sheet = ss.getSheetByName(SALES_EDIT_LOG_SHEET);
-
-    if (!sheet) {
-        sheet = ss.insertSheet(SALES_EDIT_LOG_SHEET);
-        sheet
-            .getRange(1, 1, 1, SALES_EDIT_LOG_HEADERS.length)
-            .setValues([SALES_EDIT_LOG_HEADERS])
-            .setFontWeight("bold");
-        sheet.setFrozenRows(1);
-    }
-
+    const sheet = getOrCreateSalesEditLogSheet_();
     const now = new Date();
-
-    let editor = "unknown";
-    try {
-        editor = Session.getActiveUser().getEmail() || "unknown";
-    } catch (e) {
-        // Active user identity isn't always available depending on the
-        // deployment's access settings -- log anonymously rather than fail
-        // the whole edit over it.
-    }
+    const editor = currentEditorEmail_();
 
     const rows = changed.map(([key, label]) => [
         Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd"),
@@ -355,6 +363,96 @@ function logSalesEdit_(reportDate, before, after) {
     sheet
         .getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length)
         .setValues(rows);
+}
+
+// Serialized the same way updateReport()/saveReport() are, for the same
+// reason: the row lookup and the write can't be allowed to race a retry.
+function deleteReport(dateStr) {
+    const lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+
+    try {
+        return deleteReportLocked_(dateStr);
+    } finally {
+        lock.releaseLock();
+    }
+}
+
+function deleteReportLocked_(dateStr) {
+    const sheet = SpreadsheetApp.getActive().getSheetByName(
+        CONFIG.SHEETS.SALES,
+    );
+
+    const row = findSalesRowByDate_(sheet, dateStr);
+
+    if (!row) {
+        throw new Error(
+            "This report (" +
+                dateStr +
+                ") no longer exists in the Sales sheet -- it may have " +
+                "already been deleted.",
+        );
+    }
+
+    const before = readReportForEdit_(sheet, row);
+    const isLatest = row === sheet.getLastRow();
+
+    sheet.deleteRow(row);
+    logSalesDelete_(dateStr, before);
+
+    const period = Utilities.formatDate(
+        new Date(dateStr),
+        Session.getScriptTimeZone(),
+        "yyyy-MM",
+    );
+
+    return {
+        dashboard: getDashboard(period),
+        isLatest,
+        // Same chain concern as updateReport()'s cashChanged: only Closing
+        // Cash/Cash Withdrawal feed the next row's Starting Cash snapshot
+        // (see getStartingCash()).
+        hadCashImpact: before.cash !== 0 || before.cashWithdrawal !== 0,
+    };
+}
+
+// A single summary row rather than one row per field -- for a whole-record
+// delete "old value" is naturally the whole record, and ten rows reading
+// "X -> (deleted)" would be noise compared to the per-field diff a real
+// edit gets from logSalesEdit_() above.
+function logSalesDelete_(reportDate, before) {
+    const sheet = getOrCreateSalesEditLogSheet_();
+    const now = new Date();
+
+    const summary =
+        "Cash:" +
+        before.cash +
+        " Credit:" +
+        before.creditInvoices +
+        " Payments:" +
+        (before.payments || "-") +
+        " DailyExp:" +
+        before.dailyExpense +
+        " OtherExp:" +
+        before.otherExpenses +
+        " CustPay:" +
+        before.customerPayments +
+        " Withdrawal:" +
+        before.cashWithdrawal +
+        " Deposit:" +
+        before.cashDeposit +
+        " Total:" +
+        before.totalSales;
+
+    sheet.appendRow([
+        Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd"),
+        Utilities.formatDate(now, Session.getScriptTimeZone(), "HH:mm:ss"),
+        reportDate,
+        currentEditorEmail_(),
+        "(entire report)",
+        summary,
+        "DELETED",
+    ]);
 }
 
 // True if any row already in the Sales sheet is for `dateStr` (yyyy-MM-dd).

@@ -12,6 +12,21 @@ full technical detail on each.
 
 ---
 
+## 2026-09-22 — Sales report deletion: inside the Edit modal, not the row, and logged before the row goes
+
+**Decision:** `deleteReport()` (`Sales.gs`) removes a Sales row, reusing the Edit modal's row-by-date
+lookup and lock. It's only reachable from inside the Edit modal (a "🗑 Delete report" text button in
+the modal's footer, on the opposite side from Cancel/Save), not as a second icon next to ✎ Edit in
+the table row, and requires a native `confirm()` naming the report's date before it runs. The full
+row is logged to "Sales Edit Log" as one summary row before `sheet.deleteRow()` runs.
+
+**Why:** Requested as a follow-up to the Edit modal, 2026-09-22. Putting Delete behind "open Edit
+first" is a deliberate extra step for an irreversible action on financial data — Edit and Delete
+shouldn't be close enough to mis-tap — and it means the row-identification-by-date and locking from
+the entry below (same day) already cover it, with no new lookup mechanism needed.
+
+---
+
 ## 2026-09-22 — Sales report editing: identify rows by date, recalc Total Sales, don't touch Starting Cash
 
 **Decision:** A new Edit modal on the Sales tab (`getReportForEdit`/`updateReport` in `Sales.gs`,

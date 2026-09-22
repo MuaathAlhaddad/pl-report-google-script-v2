@@ -156,20 +156,32 @@
         <div class="modalActions">
             <button
                 type="button"
-                class="modalCancelBtn"
-                onclick="requestCloseEditModal()"
+                id="editDeleteButton"
+                class="modalDeleteBtn"
+                onclick="requestDeleteReport()"
             >
-                Cancel
+                🗑 Delete report
             </button>
 
-            <button
-                type="button"
-                id="editSaveButton"
-                class="modalSaveBtn"
-                onclick="submitEditForm()"
-            >
-                Save
-            </button>
+            <div class="modalActionsRight">
+                <button
+                    type="button"
+                    id="editCancelButton"
+                    class="modalCancelBtn"
+                    onclick="requestCloseEditModal()"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="button"
+                    id="editSaveButton"
+                    class="modalSaveBtn"
+                    onclick="submitEditForm()"
+                >
+                    Save
+                </button>
+            </div>
         </div>
     </div>
 </div>
