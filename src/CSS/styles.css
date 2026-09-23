@@ -909,9 +909,28 @@ body {
 .accRow:last-child {
     border-bottom: none;
 }
-#salesTable,
 .expenseBreakdown {
     overflow-x: auto;
+}
+
+/* The wrapper is the scroll container (both axes) so the header can stick
+   while still allowing horizontal scroll on narrow screens. Sticky needs the
+   table itself to not clip, so the rounded corners move to the wrapper. */
+#salesTable {
+    overflow: auto;
+    max-height: calc(100vh - 40px);
+    border-radius: 15px;
+}
+
+#salesTable .salesTable {
+    overflow: visible;
+    border-radius: 0;
+}
+
+#salesTable .salesTable th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 .fab {
     position: fixed;
