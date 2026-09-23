@@ -162,6 +162,60 @@ function readReportForEdit_(sheet, row) {
     };
 }
 
+// Starting Cash (column K) is a one-time snapshot of the previous row's
+// Closing Cash minus its Cash Withdrawal (see getStartingCash()), not a
+// live formula -- so editing or deleting an earlier row can leave every
+// later row's Starting Cash (and, downstream, Total Sales) stale. This
+// walks forward from `fromRow` to the last row and rewrites both columns
+// to match, seeded with the Closing Cash/Cash Withdrawal of whatever now
+// comes immediately before `fromRow`. One bulk read and one bulk write,
+// regardless of how many rows that turns out to be -- a per-row round trip
+// would be too slow once the sheet has a year or more of history.
+// Returns the number of rows touched.
+function recalculateForwardFrom_(sheet, fromRow, seedClosingCash, seedWithdrawal) {
+    const lastRow = sheet.getLastRow();
+    if (fromRow > lastRow) return 0;
+
+    const numRows = lastRow - fromRow + 1;
+    const values = sheet.getRange(fromRow, 1, numRows, 16).getValues();
+    const paymentFormulas = sheet
+        .getRange(fromRow, 5, numRows, 1)
+        .getFormulas()
+        .map((r) => r[0]);
+
+    let prevClosingCash = seedClosingCash;
+    let prevWithdrawal = seedWithdrawal;
+
+    const updates = values.map((r, i) => {
+        const startingCash = Math.max(prevClosingCash - prevWithdrawal, 0);
+
+        const totalSales = calculateTotalSales({
+            cash: r[1],
+            creditInvoices: r[2],
+            payments: paymentFormulas[i]
+                ? paymentFormulas[i].replace(/^=/, "")
+                : "",
+            dailyExpense: r[5],
+            otherExpenses: r[6],
+            customerPayments: Math.abs(r[7]),
+            cashDeposit: Math.abs(r[9]),
+            startingCash,
+            debtWithdrawal: Number(r[14]) || 0,
+        });
+
+        // This row's own Closing Cash/Cash Withdrawal seed the *next* row's
+        // Starting Cash -- read before this row's own values are touched.
+        prevClosingCash = Number(r[1]) || 0;
+        prevWithdrawal = Number(r[8]) || 0;
+
+        return [-startingCash, totalSales];
+    });
+
+    sheet.getRange(fromRow, 11, numRows, 2).setValues(updates);
+
+    return numRows;
+}
+
 // Stricter than saveReportLocked_'s coercion-to-0 on purpose: silently
 // zeroing a bad edit would corrupt a report that was previously correct,
 // which is a worse failure than it happening on a brand-new one.
@@ -277,6 +331,22 @@ function updateReportLocked_(originalDate, data) {
 
     logSalesEdit_(originalDate, before, Object.assign({}, clean, { totalSales }));
 
+    // Only Closing Cash/Cash Withdrawal feed the next row's Starting Cash
+    // snapshot (see getStartingCash()) -- everything else changing here
+    // can't affect later rows, so skip the walk-forward otherwise.
+    let recalculatedRows = 0;
+    if (
+        before.cash !== clean.cash ||
+        before.cashWithdrawal !== clean.cashWithdrawal
+    ) {
+        recalculatedRows = recalculateForwardFrom_(
+            sheet,
+            row + 1,
+            clean.cash,
+            clean.cashWithdrawal,
+        );
+    }
+
     const period = Utilities.formatDate(
         new Date(originalDate),
         Session.getScriptTimeZone(),
@@ -286,12 +356,13 @@ function updateReportLocked_(originalDate, data) {
     return {
         // Reuses the exact aggregation the normal dashboard load uses, so
         // the table and summary cards refresh from one source of truth in
-        // this same round trip instead of a second server call.
+        // this same round trip instead of a second server call. Note this
+        // is scoped to the edited row's own month -- if the cascade above
+        // touched rows in a later month, those won't visibly refresh until
+        // that month is next loaded (the underlying sheet is correct either
+        // way).
         dashboard: getDashboard(period),
-        isLatest: row === sheet.getLastRow(),
-        cashChanged:
-            before.cash !== clean.cash ||
-            before.cashWithdrawal !== clean.cashWithdrawal,
+        recalculatedRows,
     };
 }
 
@@ -408,9 +479,31 @@ function deleteReportLocked_(dateStr) {
     }
 
     const before = readReportForEdit_(sheet, row);
-    const isLatest = row === sheet.getLastRow();
 
     sheet.deleteRow(row);
+
+    // Rows after the deleted one shift up by one, so `row` now holds what
+    // used to be `row + 1`. Reseed the walk-forward from whatever's now
+    // immediately above it -- the header row (no seed, defaults to 0/0, same
+    // as getStartingCash()'s own "no previous reports" case) if the deleted
+    // row was the first one.
+    const seedRow = row - 1;
+    let seedClosingCash = 0;
+    let seedWithdrawal = 0;
+
+    if (seedRow >= 2) {
+        const seed = sheet.getRange(seedRow, 2, 1, 8).getValues()[0]; // B..I
+        seedClosingCash = Number(seed[0]) || 0;
+        seedWithdrawal = Number(seed[7]) || 0;
+    }
+
+    const recalculatedRows = recalculateForwardFrom_(
+        sheet,
+        row,
+        seedClosingCash,
+        seedWithdrawal,
+    );
+
     logSalesDelete_(dateStr, before);
 
     const period = Utilities.formatDate(
@@ -421,11 +514,7 @@ function deleteReportLocked_(dateStr) {
 
     return {
         dashboard: getDashboard(period),
-        isLatest,
-        // Same chain concern as updateReport()'s cashChanged: only Closing
-        // Cash/Cash Withdrawal feed the next row's Starting Cash snapshot
-        // (see getStartingCash()).
-        hadCashImpact: before.cash !== 0 || before.cashWithdrawal !== 0,
+        recalculatedRows,
     };
 }
 

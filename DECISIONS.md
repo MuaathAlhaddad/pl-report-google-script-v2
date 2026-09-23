@@ -12,6 +12,25 @@ full technical detail on each.
 
 ---
 
+## 2026-09-23 — Editing/deleting a Sales row now cascades Starting Cash forward, instead of just warning
+
+**Decision:** Supersedes the "the edit only warns about this" call in the 2026-09-22 Edit-modal
+entry below. `updateReportLocked_`/`deleteReportLocked_` (`Sales.gs`) now call a new
+`recalculateForwardFrom_(sheet, fromRow, seedClosingCash, seedWithdrawal)` whenever a save/delete
+changes Closing Cash or Cash Withdrawal (the only two fields `getStartingCash()` reads) on a row
+that isn't the last one. It walks every row from `fromRow` to the last row, recomputing each one's
+Starting Cash from the *previous* row's (possibly just-updated) Closing Cash/Withdrawal and its
+Total Sales from that, in one bulk read + one bulk write regardless of row count. The client shows
+a confirmation naming how many later reports were recalculated, instead of the old "won't
+automatically update" warning.
+
+**Why:** Owner's request, 2026-09-23, after manually fixing a live case of exactly this drift:
+20/09/2026's Closing Cash had been edited after 21/09/2026 was already saved, leaving 21/09's
+Starting Cash (and so its Total Sales) 5,000 too high until it was corrected by hand. Owner asked
+for this to be handled "systematically" going forward rather than requiring manual fixes.
+
+---
+
 ## 2026-09-23 — Total Sales formula gained Debt Withdrawal, a second withdrawal type with opposite math
 
 **Decision:** Cash Withdrawal always meant money taken *after* Closing Cash was counted (e.g. for

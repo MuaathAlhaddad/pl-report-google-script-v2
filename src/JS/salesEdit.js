@@ -263,11 +263,13 @@ function submitEditForm() {
             renderSalesDashboard(result.dashboard);
             closeEditModal();
 
-            if (result.cashChanged && !result.isLatest) {
+            if (result.recalculatedRows > 0) {
                 alert(
-                    "Saved. Note: this wasn't the most recent report, so " +
-                        "later days' Starting Cash won't automatically " +
-                        "update to match this change.",
+                    "Saved. This changed Closing Cash or Cash Withdrawal, " +
+                        "so Starting Cash and Total were also recalculated " +
+                        "for " +
+                        result.recalculatedRows +
+                        " later report(s) to stay consistent.",
                 );
             }
         })
@@ -313,11 +315,12 @@ function requestDeleteReport() {
             renderSalesDashboard(result.dashboard);
             closeEditModal();
 
-            if (result.hadCashImpact && !result.isLatest) {
+            if (result.recalculatedRows > 0) {
                 alert(
-                    "Deleted. Note: this wasn't the most recent report, so " +
-                        "later days' Starting Cash won't automatically " +
-                        "update to reflect its removal.",
+                    "Deleted. Starting Cash and Total were also " +
+                        "recalculated for " +
+                        result.recalculatedRows +
+                        " later report(s) to stay consistent.",
                 );
             }
         })
