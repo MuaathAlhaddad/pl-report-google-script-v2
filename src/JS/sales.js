@@ -165,6 +165,7 @@ function renderSalesTable(rows) {
 <th>Client Pay</th>
 <th>Withdrawal</th>
 <th>Deposit</th>
+<th>Debt W/D</th>
 <th>Total</th>
 <th></th>
 
@@ -198,6 +199,8 @@ function renderSalesTable(rows) {
 <td${r.withdrawalNote ? ` class="hasNote" title="${escapeAttr(r.withdrawalNote)}"` : ""}>${money(r.cashWithdrawal)}${r.withdrawalNote ? " 📝" : ""}</td>
 
 <td${r.depositNote ? ` class="hasNote" title="${escapeAttr(r.depositNote)}"` : ""}>${money(r.cashDeposit)}${r.depositNote ? " 📝" : ""}</td>
+
+<td${r.debtWithdrawalNote ? ` class="hasNote" title="${escapeAttr(r.debtWithdrawalNote)}"` : ""}>${money(r.debtWithdrawal)}${r.debtWithdrawalNote ? " 📝" : ""}</td>
 
 <td>${money(r.totalSales)}</td>
 

@@ -147,6 +147,7 @@
         <div class="formRowGroup">
             <div class="formFieldGroup">
                 <label>Cash Withdrawal</label>
+                <div class="fieldHint">Taken after closing, e.g. for home</div>
 
                 <input
                     type="number"
@@ -186,6 +187,37 @@
                     type="text"
                     id="depositNote"
                     placeholder="Where did the money come from? (optional)"
+                />
+            </div>
+        </div>
+
+        <div class="sectionTitle">Debt Withdrawal</div>
+
+        <div class="formRowGroup">
+            <div class="formFieldGroup">
+                <label>Debt Withdrawal</label>
+                <div class="fieldHint">
+                    Taken before closing to cover a same-day debt — added
+                    back into today's Total, unlike Cash Withdrawal above
+                </div>
+
+                <input
+                    type="number"
+                    id="debtWithdrawal"
+                    value="0"
+                    oninput="toggleNoteField('debtWithdrawal', 'debtWithdrawalNoteGroup')"
+                />
+            </div>
+        </div>
+
+        <div class="formRowGroup">
+            <div class="formFieldGroup" id="debtWithdrawalNoteGroup" style="display: none">
+                <label>Debt Withdrawal Note</label>
+
+                <input
+                    type="text"
+                    id="debtWithdrawalNote"
+                    placeholder="What was it for / who owes it? (optional)"
                 />
             </div>
         </div>

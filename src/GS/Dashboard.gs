@@ -79,6 +79,10 @@ function getAllSalesRows() {
             withdrawalNote: String(raw[12] || "").trim(),
 
             depositNote: String(raw[13] || "").trim(),
+
+            debtWithdrawal: Number(raw[14]) || 0,
+
+            debtWithdrawalNote: String(raw[15] || "").trim(),
         });
     }
 

@@ -51,6 +51,11 @@ function fillEditForm(report) {
     document.getElementById("editCashDeposit").value = report.cashDeposit;
     document.getElementById("editDepositNote").value = report.depositNote;
 
+    document.getElementById("editDebtWithdrawal").value =
+        report.debtWithdrawal;
+    document.getElementById("editDebtWithdrawalNote").value =
+        report.debtWithdrawalNote;
+
     const expense = Number(report.dailyExpense) || 285;
     document.getElementById("editDailyExpense").value = expense;
 
@@ -65,6 +70,7 @@ function fillEditForm(report) {
 
     toggleEditNoteField("editCashWithdrawal", "editWithdrawalNoteGroup");
     toggleEditNoteField("editCashDeposit", "editDepositNoteGroup");
+    toggleEditNoteField("editDebtWithdrawal", "editDebtWithdrawalNoteGroup");
     updateEditPaymentsPreview();
     clearEditErrors();
 }
@@ -126,6 +132,10 @@ function readEditFormFields() {
             .value.trim(),
         cashDeposit: document.getElementById("editCashDeposit").value,
         depositNote: document.getElementById("editDepositNote").value.trim(),
+        debtWithdrawal: document.getElementById("editDebtWithdrawal").value,
+        debtWithdrawalNote: document
+            .getElementById("editDebtWithdrawalNote")
+            .value.trim(),
     };
 }
 
@@ -146,6 +156,7 @@ const EDIT_NUMBER_FIELDS = [
     ["otherExpenses", "Other Expenses"],
     ["cashWithdrawal", "Cash Withdrawal"],
     ["cashDeposit", "Cash Deposit"],
+    ["debtWithdrawal", "Debt Withdrawal"],
 ];
 
 function editFieldId(key) {

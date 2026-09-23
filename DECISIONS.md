@@ -12,6 +12,30 @@ full technical detail on each.
 
 ---
 
+## 2026-09-23 — Total Sales formula gained Debt Withdrawal, a second withdrawal type with opposite math
+
+**Decision:** Cash Withdrawal always meant money taken *after* Closing Cash was counted (e.g. for
+home) — correctly excluded from `calculateTotalSales()` (`Utils.gs`) since Closing Cash already
+reflects the full day. A second, previously unmodeled case exists: money taken from the till
+*before* closing to cover a same-day debt. That amount is missing from Closing Cash (it left before
+the count), so it has to be *added back* to reconstruct the true total — the opposite treatment.
+Added as a new field, "Debt Withdrawal" (Sales sheet columns O/P: amount + optional note), on the
+create form, the Edit modal, and `calculateTotalSales()`. It deliberately does **not** feed
+`getStartingCash()`'s `closingCash - withdrawal` chain the way Cash Withdrawal does, since it's
+already reflected in Closing Cash and subtracting it again there would double-count it. Existing
+historical rows are left as-is (their Cash Withdrawal values aren't retroactively split — there's
+no way to tell from the stored number which type they were); the new column only applies going
+forward. **The Sales sheet's header row needs "Debt Withdrawal" / "Debt Withdrawal Note" added by
+hand for columns O/P** — this app never manages the Sales sheet's headers in code (unlike sheets it
+creates itself, e.g. Suppliers/DailyEntryLog).
+
+**Why:** Confirmed 2026-09-23 while testing the new Edit modal — editing 24/08/2026 to add a 3000
+Cash Withdrawal left Total Sales unchanged, which is actually correct for that withdrawal type, but
+surfaced that the app had no way to record the other type at all, silently undercounting Total Sales
+on any day it happened (Total Sales was net of the debt withdrawal instead of including it).
+
+---
+
 ## 2026-09-23 — Expense wizard input hints come from an optional "Hint" column in ExpenseSetup
 
 **Decision:** `getExpenseSetup()` looks for a column headed "Hint" (case-insensitive, by header

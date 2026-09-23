@@ -98,6 +98,13 @@ function fillForm(data) {
 
     document.getElementById("depositNote").value = data.depositNote ?? "";
 
+    document.getElementById("debtWithdrawal").value = data.debtWithdrawal ?? 0;
+
+    toggleNoteField("debtWithdrawal", "debtWithdrawalNoteGroup");
+
+    document.getElementById("debtWithdrawalNote").value =
+        data.debtWithdrawalNote ?? "";
+
     const expense = data.dailyExpense ?? 285;
 
     document.getElementById("dailyExpense").value = expense;
@@ -199,6 +206,13 @@ function submitData() {
         cashDeposit: Number(document.getElementById("cashDeposit").value) || 0,
 
         depositNote: document.getElementById("depositNote").value.trim(),
+
+        debtWithdrawal:
+            Number(document.getElementById("debtWithdrawal").value) || 0,
+
+        debtWithdrawalNote: document
+            .getElementById("debtWithdrawalNote")
+            .value.trim(),
 
         startingCash:
             Number(document.getElementById("startingCash").value) || 0,

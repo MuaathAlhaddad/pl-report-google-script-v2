@@ -31,12 +31,19 @@ function calculateTotalSales(data) {
     const cashDeposit = Number(data.cashDeposit) || 0;
     const startingCash = Number(data.startingCash) || 0;
 
+    // Taken from the till *before* Closing Cash is counted (e.g. a same-day
+    // debt), so unlike Cash Withdrawal (taken *after* the count, which
+    // Closing Cash already fully reflects) this amount is missing from
+    // Closing Cash and has to be added back to reconstruct the real total.
+    const debtWithdrawal = Number(data.debtWithdrawal) || 0;
+
     return (
         closingCash +
         creditInvoices +
         paymentInfo.total +
         dailyExpense +
-        otherExpenses -
+        otherExpenses +
+        debtWithdrawal -
         customerPayments -
         cashDeposit -
         startingCash

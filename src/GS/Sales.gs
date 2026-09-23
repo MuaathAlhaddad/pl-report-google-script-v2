@@ -18,6 +18,8 @@ function getNewReportData() {
         withdrawalNote: "",
         cashDeposit: daftra.cashDeposit,
         depositNote: "",
+        debtWithdrawal: 0,
+        debtWithdrawalNote: "",
         daftraErrors: daftra.errors,
     };
 }
@@ -107,11 +109,12 @@ function findSalesRowByDate_(sheet, dateStr) {
     return null;
 }
 
-// Full record for the Edit modal -- unlike getReport(), this reads all 14
-// columns (including notes and Starting Cash) and reads the Payments cell's
-// formula rather than its computed value, since saveReportLocked_ stores it
-// as "=500+300" so the sheet can show the sum; getValues() on that cell
-// would return the evaluated total, not the original expression.
+// Full record for the Edit modal -- unlike getReport(), this reads all 16
+// columns (including notes, Starting Cash, and Debt Withdrawal) and reads
+// the Payments cell's formula rather than its computed value, since
+// saveReportLocked_ stores it as "=500+300" so the sheet can show the sum;
+// getValues() on that cell would return the evaluated total, not the
+// original expression.
 function getReportForEdit(dateStr) {
     const sheet = SpreadsheetApp.getActive().getSheetByName(
         CONFIG.SHEETS.SALES,
@@ -131,7 +134,7 @@ function getReportForEdit(dateStr) {
 }
 
 function readReportForEdit_(sheet, row) {
-    const r = sheet.getRange(row, 1, 1, 14).getValues()[0];
+    const r = sheet.getRange(row, 1, 1, 16).getValues()[0];
     const paymentsFormula = sheet.getRange(row, 5).getFormula();
 
     return {
@@ -153,6 +156,8 @@ function readReportForEdit_(sheet, row) {
         totalSales: r[11],
         withdrawalNote: r[12] || "",
         depositNote: r[13] || "",
+        debtWithdrawal: Number(r[14]) || 0,
+        debtWithdrawalNote: r[15] || "",
         isLatest: row === sheet.getLastRow(),
     };
 }
@@ -197,6 +202,10 @@ function validateEditData_(data) {
         cashDeposit: numberField(data.cashDeposit, "Cash Deposit"),
         withdrawalNote: String((data && data.withdrawalNote) || "").trim(),
         depositNote: String((data && data.depositNote) || "").trim(),
+        debtWithdrawal: numberField(data.debtWithdrawal, "Debt Withdrawal"),
+        debtWithdrawalNote: String(
+            (data && data.debtWithdrawalNote) || "",
+        ).trim(),
     };
 }
 
@@ -245,7 +254,7 @@ function updateReportLocked_(originalDate, data) {
 
     const paymentInfo = calculatePayments(clean.payments);
 
-    sheet.getRange(row, 1, 1, 14).setValues([
+    sheet.getRange(row, 1, 1, 16).setValues([
         [
             new Date(originalDate), // A Date -- unchanged
             clean.cash, // B Closing Cash
@@ -261,6 +270,8 @@ function updateReportLocked_(originalDate, data) {
             totalSales, // L Total Sales -- recalculated
             clean.withdrawalNote, // M Withdrawal Note
             clean.depositNote, // N Deposit Note
+            clean.debtWithdrawal, // O Debt Withdrawal
+            clean.debtWithdrawalNote, // P Debt Withdrawal Note
         ],
     ]);
 
@@ -337,6 +348,8 @@ function logSalesEdit_(reportDate, before, after) {
         ["withdrawalNote", "Withdrawal Note"],
         ["cashDeposit", "Cash Deposit"],
         ["depositNote", "Deposit Note"],
+        ["debtWithdrawal", "Debt Withdrawal"],
+        ["debtWithdrawalNote", "Debt Withdrawal Note"],
         ["totalSales", "Total Sales"],
     ];
 
@@ -441,6 +454,8 @@ function logSalesDelete_(reportDate, before) {
         before.cashWithdrawal +
         " Deposit:" +
         before.cashDeposit +
+        " DebtWithdrawal:" +
+        before.debtWithdrawal +
         " Total:" +
         before.totalSales;
 
@@ -505,7 +520,7 @@ function saveReportLocked_(data) {
 
     const row = sheet.getLastRow() + 1;
 
-    sheet.getRange(row, 1, 1, 14).setValues([
+    sheet.getRange(row, 1, 1, 16).setValues([
         [
             new Date(data.date), // A Date
             Number(data.cash) || 0, // B Closing Cash
@@ -521,6 +536,8 @@ function saveReportLocked_(data) {
             totalSales, // L Total Sales
             data.withdrawalNote || "", // M Withdrawal Note
             data.depositNote || "", // N Deposit Note
+            Number(data.debtWithdrawal) || 0, // O Debt Withdrawal
+            data.debtWithdrawalNote || "", // P Debt Withdrawal Note
         ],
     ]);
 

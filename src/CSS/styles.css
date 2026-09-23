@@ -284,6 +284,24 @@ body {
     }
 }
 
+/* ---------- Field hints (small grey text under a label) ---------- */
+/* Same visual convention as .expenseHint in the Expense wizard, but not
+   scoped to .expenseRow so it works under any label in the app. */
+
+.fieldHint {
+    margin-top: 3px;
+
+    margin-bottom: 6px;
+
+    font-size: 12px;
+
+    font-weight: normal;
+
+    color: #888;
+
+    line-height: 1.4;
+}
+
 /* ---------- Editable display fields (Daftra auto-filled) ---------- */
 
 .editableField {
