@@ -816,6 +816,18 @@ body {
     flex: 1;
 }
 
+.expenseLabel {
+    flex: 1;
+}
+
+.expenseHint {
+    margin-top: 3px;
+    font-size: 12px;
+    font-weight: normal;
+    color: #888;
+    line-height: 1.4;
+}
+
 .expenseRow input {
     width: 130px;
     padding: 8px 10px;

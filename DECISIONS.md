@@ -12,6 +12,21 @@ full technical detail on each.
 
 ---
 
+## 2026-09-23 — Expense wizard input hints come from an optional "Hint" column in ExpenseSetup
+
+**Decision:** `getExpenseSetup()` looks for a column headed "Hint" (case-insensitive, by header
+name rather than a fixed position) in the ExpenseSetup sheet. When a row has one, the expense
+wizard shows it as small grey text under that input's label. Rows without a hint render exactly
+as before. The setup payload's `general`/`accounts` entries are now `{ name, hint }` objects
+instead of plain strings.
+
+**Why:** Requested 2026-09-23 so whoever fills in the monthly expenses has guidance on what a
+given line should include, and the owner can edit that guidance in the sheet without a code change.
+The hint is shown as always-visible text, not as the input's placeholder, because the inputs are
+pre-filled from last month's values, and a placeholder would be hidden behind them.
+
+---
+
 ## 2026-09-22 — Sales report deletion: inside the Edit modal, not the row, and logged before the row goes
 
 **Decision:** `deleteReport()` (`Sales.gs`) removes a Sales row, reusing the Edit modal's row-by-date

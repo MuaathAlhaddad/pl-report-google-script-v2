@@ -186,12 +186,12 @@ function renderExpenseStep() {
                 <h2>عام</h2>
         `;
 
-        step.general.forEach((name) => {
+        step.general.forEach(({ name, hint }) => {
             html += `
 
                 <div class="expenseRow">
 
-                    <label>${name}</label>
+                    ${expenseLabel(name, hint)}
 
                     <input
                         type="number"
@@ -226,12 +226,12 @@ function renderExpenseStep() {
 
             `;
 
-            section.accounts.forEach((account) => {
+            section.accounts.forEach(({ name: account, hint }) => {
                 html += `
 
                     <div class="expenseRow">
 
-                        <label>${account}</label>
+                        ${expenseLabel(account, hint)}
 
                         <input
                             type="number"
@@ -281,6 +281,17 @@ function renderExpenseStep() {
     document.getElementById("wizardProgressBar").style.width = progress + "%";
 
     updateExpenseSummary();
+}
+
+function expenseLabel(name, hint) {
+    if (!hint) return `<label>${name}</label>`;
+
+    return `
+        <div class="expenseLabel">
+            <label>${name}</label>
+            <div class="expenseHint">${escapeHtml(hint)}</div>
+        </div>
+    `;
 }
 
 function saveExpensesForm() {
