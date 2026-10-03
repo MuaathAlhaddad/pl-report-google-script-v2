@@ -1,4 +1,11 @@
 function getExpenseSetup() {
+    return readExpenseSetup_().setup;
+}
+
+// Reads the ExpenseSetup sheet exactly once and returns both the wizard
+// setup (active lines only) and a lookup of Inactive lines, so callers that
+// need both (getExpenseWizard, saveExpenses) don't re-read the sheet.
+function readExpenseSetup_() {
     const sheet = SpreadsheetApp.getActive().getSheetByName("ExpenseSetup");
 
     const values = sheet.getDataRange().getValues();
@@ -9,7 +16,17 @@ function getExpenseSetup() {
         (h) => String(h).trim().toLowerCase() == "hint",
     );
 
+    // Optional "Status" column (Active / Inactive), found by header the same
+    // way. A line marked Inactive stays in the sheet but is left out of the
+    // wizard and refused by saveExpenses; anything else (incl. blank) counts
+    // as Active.
+    const statusCol = values[0].findIndex(
+        (h) => String(h).trim().toLowerCase() == "status",
+    );
+
     const categories = {};
+
+    const inactive = {};
 
     for (let i = 1; i < values.length; i++) {
         const category = String(values[i][0]).trim();
@@ -31,15 +48,23 @@ function getExpenseSetup() {
             };
         }
 
+        if (account != "" && !categories[category].sections[subcategory])
+            categories[category].sections[subcategory] = [];
+
+        if (
+            statusCol >= 0 &&
+            String(values[i][statusCol]).trim().toLowerCase() == "inactive"
+        ) {
+            inactive[expenseLineKey_(category, subcategory, account)] = true;
+            continue;
+        }
+
         if (account == "") {
             if (
                 !categories[category].general.some((g) => g.name == subcategory)
             )
                 categories[category].general.push({ name: subcategory, hint });
         } else {
-            if (!categories[category].sections[subcategory])
-                categories[category].sections[subcategory] = [];
-
             categories[category].sections[subcategory].push({
                 name: account,
                 hint,
@@ -47,15 +72,29 @@ function getExpenseSetup() {
         }
     }
 
-    return Object.values(categories).map((c) => ({
-        title: c.title,
+    return {
+        setup: Object.values(categories).map((c) => ({
+            title: c.title,
 
-        general: c.general,
+            general: c.general,
 
-        sections: Object.keys(c.sections).map((name) => ({
-            title: name,
+            sections: Object.keys(c.sections).map((name) => ({
+                title: name,
 
-            accounts: c.sections[name],
+                accounts: c.sections[name],
+            })),
         })),
-    }));
+
+        inactive,
+    };
+}
+
+function isExpenseLineInactive_(inactive, category, subcategory, account) {
+    return !!inactive[expenseLineKey_(category, subcategory, account)];
+}
+
+function expenseLineKey_(category, subcategory, account) {
+    return [category, subcategory, account || ""]
+        .map((v) => String(v).trim())
+        .join("\u0001");
 }

@@ -226,6 +226,10 @@ function renderExpenseStep() {
 
             `;
 
+            if (!section.accounts.length) {
+                html += `<div class="emptyState">No active employees available.</div>`;
+            }
+
             section.accounts.forEach(({ name: account, hint }) => {
                 html += `
 
@@ -303,11 +307,61 @@ function saveExpensesForm() {
             showTab("expenses");
         })
 
+        .withFailureHandler(function (err) {
+            showError(err);
+
+            refreshExpenseSteps();
+        })
+
         .saveExpenses({
             period: APP.period,
 
             expenses: EXPENSE.values,
         });
+}
+
+// Re-reads the setup after a rejected save (e.g. a line was made Inactive
+// while this form was open). Lines that disappeared lose their amount; every
+// other value the user typed is kept.
+function refreshExpenseSteps() {
+    google.script.run
+        .withSuccessHandler(function (setup) {
+            const before = expenseStepKeys(EXPENSE.steps);
+            const after = expenseStepKeys(setup);
+
+            EXPENSE.values = EXPENSE.values.filter((e) => {
+                const key = expenseKey(e.category, e.subcategory, e.account);
+                return !before[key] || after[key];
+            });
+
+            EXPENSE.steps = setup;
+            EXPENSE.current = Math.min(EXPENSE.current, setup.length - 1);
+            renderExpenseStep();
+        })
+        .withFailureHandler(showError)
+        .getExpenseSetup();
+}
+
+function expenseStepKeys(steps) {
+    const keys = {};
+
+    steps.forEach((step) => {
+        (step.general || []).forEach(({ name }) => {
+            keys[expenseKey(step.title, name, "")] = true;
+        });
+
+        (step.sections || []).forEach((section) => {
+            section.accounts.forEach(({ name }) => {
+                keys[expenseKey(step.title, section.title, name)] = true;
+            });
+        });
+    });
+
+    return keys;
+}
+
+function expenseKey(category, subcategory, account) {
+    return [category, subcategory, account || ""].join("\u0001");
 }
 
 function updateExpenseSummary() {

@@ -12,6 +12,25 @@ full technical detail on each.
 
 ---
 
+## 2026-10-03 — Expense wizard: Active/Inactive via an optional "Status" column in ExpenseSetup
+
+**Decision:** `ExpenseSetup` gets an optional column headed "Status" (found by header, like
+"Hint"). A line marked `Inactive` stays in the sheet but is left out of the expense wizard, its
+last-month amount isn't pre-filled, and `saveExpenses()` rejects a non-zero amount for it (the
+backend is the final authority, so a form opened before the change can't save it). Anything else,
+including blank, counts as `Active`, so nothing changes until a line is explicitly marked.
+Reactivating is just setting it back to `Active`. Historical `Expenses` rows and the dashboard are
+never filtered.
+
+**Why:** Requested 2026-10-03 so employees who have left stop appearing for new monthly expense
+entry, without deleting their accounts (historical/accounting data must stay intact). The
+`Employees` sheet's `Active` checkbox was deliberately **not** reused: it's the PWA login roster
+(English short names, e.g. "Yusuf"), while the expense accounts are Arabic full names in
+`ExpenseSetup` (e.g. "يوسف العمري") plus non-person lines ("المحاسب", "عيديات وعلاوات"). There's no
+shared key between them, and that sheet is a cross-repo contract with `employee-debts-api`.
+
+---
+
 ## 2026-09-23 — Editing/deleting a Sales row now cascades Starting Cash forward, instead of just warning
 
 **Decision:** Supersedes the "the edit only warns about this" call in the 2026-09-22 Edit-modal

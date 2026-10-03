@@ -17,6 +17,30 @@ function saveExpenses(data) {
 
     const expenses = data.expenses;
 
+    // The backend is the final authority on Active/Inactive: a form opened
+    // before a line was marked Inactive must not be able to save it.
+    const inactive = readExpenseSetup_().inactive;
+
+    const rejected = expenses.filter(
+        (e) =>
+            e.amount &&
+            isExpenseLineInactive_(
+                inactive,
+                e.category,
+                e.subcategory,
+                e.account,
+            ),
+    );
+
+    if (rejected.length) {
+        throw new Error(
+            "Expense rejected. " +
+                rejected.map((e) => e.account || e.subcategory).join(", ") +
+                (rejected.length > 1 ? " are" : " is") +
+                " currently inactive and cannot be selected for a new expense.",
+        );
+    }
+
     const sheet = SpreadsheetApp.getActive().getSheetByName(
         CONFIG.SHEETS.EXPENSES,
     );
@@ -139,11 +163,23 @@ function expensesExist(period) {
 function getExpenseWizard(period) {
     const rows = getAllExpenseRows();
 
-    return {
-        setup: getExpenseSetup(),
+    const expenseSetup = readExpenseSetup_();
 
+    return {
+        setup: expenseSetup.setup,
+
+        // Last month's amounts pre-fill the wizard; an Inactive line's amount
+        // is dropped so it isn't carried (hidden) into this month's save.
         values: toExpenseDetails(
             getRowsForPeriod(rows, getPreviousPeriod(period)),
+        ).filter(
+            (v) =>
+                !isExpenseLineInactive_(
+                    expenseSetup.inactive,
+                    v.category,
+                    v.subcategory,
+                    v.account,
+                ),
         ),
 
         exists: getRowsForPeriod(rows, period).length > 0,
