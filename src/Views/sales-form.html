@@ -29,54 +29,6 @@
 
         <div class="sectionTitle">Daftra Numbers</div>
 
-        <div class="formRowGroup">
-            <div class="formFieldGroup">
-                <label>Credit Invoices</label>
-
-                <div class="editableField" data-field="creditInvoices">
-                    <div
-                        class="fieldDisplay"
-                        ondblclick="editField('creditInvoices')"
-                    >
-                        <span class="fieldValue">0</span>
-                        <span class="editHint">✎ edit</span>
-                    </div>
-
-                    <input
-                        type="number"
-                        id="creditInvoices"
-                        value="0"
-                        style="display: none"
-                        onblur="doneEditingField('creditInvoices')"
-                        onkeydown="if (event.key === 'Enter') { event.preventDefault(); this.blur(); }"
-                    />
-                </div>
-            </div>
-
-            <div class="formFieldGroup">
-                <label>Customer Payments</label>
-
-                <div class="editableField" data-field="customerPayments">
-                    <div
-                        class="fieldDisplay"
-                        ondblclick="editField('customerPayments')"
-                    >
-                        <span class="fieldValue">0</span>
-                        <span class="editHint">✎ edit</span>
-                    </div>
-
-                    <input
-                        type="number"
-                        id="customerPayments"
-                        value="0"
-                        style="display: none"
-                        onblur="doneEditingField('customerPayments')"
-                        onkeydown="if (event.key === 'Enter') { event.preventDefault(); this.blur(); }"
-                    />
-                </div>
-            </div>
-        </div>
-
         <label>Other Expenses</label>
 
         <div class="editableField" data-field="otherExpenses">

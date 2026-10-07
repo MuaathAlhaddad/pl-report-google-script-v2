@@ -60,7 +60,7 @@ function initializeSalesForm() {
 // Fields that come pre-filled from Daftra: shown as read-only text by
 // default (see .editableField in sales-form.html) so the form reads clean,
 // with the real <input> revealed via double-click for a quick correction.
-const AUTO_FILL_FIELDS = ["creditInvoices", "otherExpenses", "customerPayments"];
+const AUTO_FILL_FIELDS = ["otherExpenses"];
 
 function fillForm(data) {
     document.getElementById("date").value = data.date ?? "";
@@ -75,14 +75,9 @@ function fillForm(data) {
 
     document.getElementById("cash").value = data.cash ?? 0;
 
-    document.getElementById("creditInvoices").value = data.creditInvoices ?? 0;
-
     document.getElementById("payments").value = data.payments ?? "";
 
     document.getElementById("otherExpenses").value = data.otherExpenses ?? 0;
-
-    document.getElementById("customerPayments").value =
-        data.customerPayments ?? 0;
 
     AUTO_FILL_FIELDS.forEach(showFieldDisplay);
 
@@ -119,8 +114,8 @@ function fillForm(data) {
     updatePayments();
 }
 
-// --- Editable display fields (Credit Invoices, Other Expenses, Customer
-// Payments) -- shown as plain text pulled from Daftra; double-click swaps
+// --- Editable display fields (Other Expenses) -- shown as plain text
+// pulled from Daftra; double-click swaps
 // in the real number input so you can correct it if it's ever wrong. ---
 
 function fieldWrapper(id) {
@@ -184,9 +179,6 @@ function submitData() {
 
         cash: Number(document.getElementById("cash").value) || 0,
 
-        creditInvoices:
-            Number(document.getElementById("creditInvoices").value) || 0,
-
         payments: paymentInfo.expression,
 
         dailyExpense:
@@ -194,9 +186,6 @@ function submitData() {
 
         otherExpenses:
             Number(document.getElementById("otherExpenses").value) || 0,
-
-        customerPayments:
-            Number(document.getElementById("customerPayments").value) || 0,
 
         cashWithdrawal:
             Number(document.getElementById("cashWithdrawal").value) || 0,

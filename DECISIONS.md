@@ -12,6 +12,25 @@ full technical detail on each.
 
 ---
 
+## 2026-10-07 — Credit Invoices and Customer Payments removed from Total Sales, with a date cutoff
+
+**Decision:** `calculateTotalSales()` no longer adds Credit Invoices or subtracts Customer
+Payments, new reports write `0` to Sales columns C and H, and both fields are gone from the
+form/Edit modal/table and the Daftra auto-fill. The columns themselves stay, since they hold
+history. The change has an explicit cutoff date, `CREDIT_AND_CUSTOMER_PAYMENTS_DISABLED_FROM =
+"2026-10-06"` (`Utils.gs`), the day after the last existing row. Rows before it keep their C/H
+values *and* their original formula whenever they're recalculated (`calculateTotalSalesForDate_`,
+used by the Edit modal and `recalculateForwardFrom_`), and an edit writes C/H back as the raw
+stored cells.
+
+**Why:** Owner's request, 2026-10-07. The cutoff exists because the 2026-09-23 forward cascade
+recalculates Total Sales for every later row. Without it, editing one old report's Closing Cash
+would silently rewrite the historical totals of every later row that had non-zero Credit/Customer
+Payments (e.g. 21/09/2026: +540 / −960). The owner had already been leaving both at 0 by hand
+since 22/09/2026, so new reports are unaffected in practice.
+
+---
+
 ## 2026-10-03 — Expense wizard: Active/Inactive via an optional "Status" column in ExpenseSetup
 
 **Decision:** `ExpenseSetup` gets an optional column headed "Status" (found by header, like

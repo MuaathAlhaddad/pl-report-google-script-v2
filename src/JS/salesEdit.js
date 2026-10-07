@@ -37,10 +37,6 @@ function fillEditForm(report) {
     document.getElementById("editStartingCash").value = report.startingCash;
 
     document.getElementById("editCash").value = report.cash;
-    document.getElementById("editCreditInvoices").value =
-        report.creditInvoices;
-    document.getElementById("editCustomerPayments").value =
-        report.customerPayments;
     document.getElementById("editOtherExpenses").value = report.otherExpenses;
     document.getElementById("editPayments").value = report.payments;
 
@@ -120,9 +116,6 @@ function updateEditPaymentsPreview() {
 function readEditFormFields() {
     return {
         cash: document.getElementById("editCash").value,
-        creditInvoices: document.getElementById("editCreditInvoices").value,
-        customerPayments: document.getElementById("editCustomerPayments")
-            .value,
         otherExpenses: document.getElementById("editOtherExpenses").value,
         payments: document.getElementById("editPayments").value.trim(),
         dailyExpense: document.getElementById("editDailyExpense").value,
@@ -151,8 +144,6 @@ function isEditFormDirty() {
 // e.g. "cashWithdrawal" maps to #editCashWithdrawal / #editCashWithdrawalError.
 const EDIT_NUMBER_FIELDS = [
     ["cash", "Closing Cash"],
-    ["creditInvoices", "Credit Invoices"],
-    ["customerPayments", "Customer Payments"],
     ["otherExpenses", "Other Expenses"],
     ["cashWithdrawal", "Cash Withdrawal"],
     ["cashDeposit", "Cash Deposit"],

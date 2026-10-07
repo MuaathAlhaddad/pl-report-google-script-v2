@@ -3,17 +3,17 @@ function getNewReportData() {
 
     // Auto-fill what Daftra already knows; supplier Payments and Cash
     // Withdrawal stay manual since Daftra has no clean data for those.
+    // Credit Invoices/Customer Payments are no longer part of the report
+    // (see CREDIT_AND_CUSTOMER_PAYMENTS_DISABLED_FROM in Utils.gs).
     const daftra = getDaftraDailyTotals(date);
 
     return {
         date,
         startingCash: getStartingCash(),
         cash: 0,
-        creditInvoices: daftra.creditInvoices,
         payments: "",
         dailyExpense: 285,
         otherExpenses: daftra.otherExpenses,
-        customerPayments: daftra.customerPayments,
         cashWithdrawal: 0,
         withdrawalNote: "",
         cashDeposit: daftra.cashDeposit,
@@ -183,25 +183,29 @@ function recalculateForwardFrom_(sheet, fromRow, seedClosingCash, seedWithdrawal
         .getFormulas()
         .map((r) => r[0]);
 
+    const tz = Session.getScriptTimeZone();
     let prevClosingCash = seedClosingCash;
     let prevWithdrawal = seedWithdrawal;
 
     const updates = values.map((r, i) => {
         const startingCash = Math.max(prevClosingCash - prevWithdrawal, 0);
 
-        const totalSales = calculateTotalSales({
-            cash: r[1],
-            creditInvoices: r[2],
-            payments: paymentFormulas[i]
-                ? paymentFormulas[i].replace(/^=/, "")
-                : "",
-            dailyExpense: r[5],
-            otherExpenses: r[6],
-            customerPayments: Math.abs(r[7]),
-            cashDeposit: Math.abs(r[9]),
-            startingCash,
-            debtWithdrawal: Number(r[14]) || 0,
-        });
+        const totalSales = calculateTotalSalesForDate_(
+            Utilities.formatDate(r[0], tz, "yyyy-MM-dd"),
+            {
+                cash: r[1],
+                creditInvoices: r[2],
+                payments: paymentFormulas[i]
+                    ? paymentFormulas[i].replace(/^=/, "")
+                    : "",
+                dailyExpense: r[5],
+                otherExpenses: r[6],
+                customerPayments: Math.abs(r[7]),
+                cashDeposit: Math.abs(r[9]),
+                startingCash,
+                debtWithdrawal: Number(r[14]) || 0,
+            },
+        );
 
         // This row's own Closing Cash/Cash Withdrawal seed the *next* row's
         // Starting Cash -- read before this row's own values are touched.
@@ -244,14 +248,9 @@ function validateEditData_(data) {
 
     return {
         cash: numberField(data.cash, "Closing Cash"),
-        creditInvoices: numberField(data.creditInvoices, "Credit Invoices"),
         payments,
         dailyExpense: numberField(data.dailyExpense, "Daily Expense"),
         otherExpenses: numberField(data.otherExpenses, "Other Expenses"),
-        customerPayments: numberField(
-            data.customerPayments,
-            "Customer Payments",
-        ),
         cashWithdrawal: numberField(data.cashWithdrawal, "Cash Withdrawal"),
         cashDeposit: numberField(data.cashDeposit, "Cash Deposit"),
         withdrawalNote: String((data && data.withdrawalNote) || "").trim(),
@@ -295,14 +294,24 @@ function updateReportLocked_(originalDate, data) {
     }
 
     const before = readReportForEdit_(sheet, row);
-    const clean = validateEditData_(data);
+
+    // Credit Invoices/Customer Payments are no longer editable -- whatever
+    // the row already holds (historical values, or 0 for newer reports) is
+    // written back exactly as stored, blanks included.
+    const storedCredit = sheet.getRange(row, 3).getValue();
+    const storedCustomerPayments = sheet.getRange(row, 8).getValue();
+    const clean = Object.assign(validateEditData_(data), {
+        creditInvoices: before.creditInvoices,
+        customerPayments: before.customerPayments,
+    });
 
     // Starting Cash is never edited directly -- it's re-read from the sheet
     // so the edit can't silently disagree with whatever the previous day's
     // chain actually wrote it as.
     const startingCash = before.startingCash;
 
-    const totalSales = calculateTotalSales(
+    const totalSales = calculateTotalSalesForDate_(
+        originalDate,
         Object.assign({}, clean, { startingCash }),
     );
 
@@ -312,12 +321,12 @@ function updateReportLocked_(originalDate, data) {
         [
             new Date(originalDate), // A Date -- unchanged
             clean.cash, // B Closing Cash
-            clean.creditInvoices, // C Credit
+            storedCredit, // C Credit -- unchanged
             paymentInfo.count, // D Payment Count
             clean.payments ? "=" + clean.payments : "", // E Payments
             clean.dailyExpense, // F Daily Expense
             clean.otherExpenses, // G Other Expense
-            -clean.customerPayments, // H Client Payments
+            storedCustomerPayments, // H Client Payments -- unchanged
             clean.cashWithdrawal, // I Cash Withdrawal
             -clean.cashDeposit, // J Cash Deposit
             -startingCash, // K Starting Cash -- unchanged
@@ -410,11 +419,9 @@ function currentEditorEmail_() {
 function logSalesEdit_(reportDate, before, after) {
     const fields = [
         ["cash", "Closing Cash"],
-        ["creditInvoices", "Credit Invoices"],
         ["payments", "Payments"],
         ["dailyExpense", "Daily Expense"],
         ["otherExpenses", "Other Expenses"],
-        ["customerPayments", "Customer Payments"],
         ["cashWithdrawal", "Cash Withdrawal"],
         ["withdrawalNote", "Withdrawal Note"],
         ["cashDeposit", "Cash Deposit"],
@@ -613,12 +620,12 @@ function saveReportLocked_(data) {
         [
             new Date(data.date), // A Date
             Number(data.cash) || 0, // B Closing Cash
-            Number(data.creditInvoices) || 0, // C Credit
+            0, // C Credit -- no longer recorded (column kept for history)
             paymentInfo.count, // D Payment Count
             data.payments ? "=" + data.payments : "", // E Payments
             Number(data.dailyExpense) || 0, // F Daily Expense
             Number(data.otherExpenses) || 0, // G Other Expense
-            -(Number(data.customerPayments) || 0), // H Client Payments
+            0, // H Client Payments -- no longer recorded (column kept for history)
             Number(data.cashWithdrawal) || 0, // I Cash Withdrawal
             -(Number(data.cashDeposit) || 0), // J Cash Deposit
             -(Number(data.startingCash) || 0), // K Starting Cash

@@ -144,8 +144,8 @@ function createDaftraInvoice_(invoiceFields, items, payments) {
 
 // Creates ONE client payment -- money credited straight to a client's
 // account balance, NOT tied to a specific invoice (that's what
-// client_payments.json is for; see getDaftraClientAccountPayments() above
-// for the read-side distinction from invoice_payments.json). Daftra applies
+// client_payments.json is for; a payment applied to a specific invoice
+// lives in invoice_payments.json instead). Daftra applies
 // it against the client's outstanding balance itself.
 //
 // Payload shape confirmed working against this account via the sibling
@@ -283,80 +283,6 @@ function daftraUnwrap_(item, key) {
     return item && item[key] ? item[key] : item;
 }
 
-// Sum of unpaid invoices dated `dateStr` -- since every customer-debt
-// invoice you create uses the "due invoice" service and nothing else goes
-// out unpaid, "unpaid invoices today" IS the Credit Invoices total.
-function getDaftraCreditInvoices(dateStr) {
-    const payload = daftraGet_("invoices.json", {
-        date_from: dateStr,
-        date_to: dateStr,
-        limit: 100,
-    });
-
-    const invoices = daftraExtractList_(payload).map((item) =>
-        daftraUnwrap_(item, "Invoice"),
-    );
-
-    return invoices
-        .filter((inv) => {
-            const status = String(inv.payment_status || "").toLowerCase();
-            return (
-                status === "unpaid" ||
-                status === "credit" ||
-                status === "due" ||
-                status === "0" ||
-                status === "2"
-            );
-        })
-        .reduce((sum, inv) => sum + (Number(inv.summary_total) || 0), 0);
-}
-
-// Daftra stores payments in TWO separate resources depending on how they
-// were entered -- confirmed against a real account (15/08/2026: client_payments
-// alone gave 493 vs the real Payments Report total of 661):
-//   - invoice_payments.json ("InvoicePayment") -- a payment applied to a
-//     specific invoice.
-//   - client_payments.json ("ClientPayment") -- a payment credited straight
-//     to a client's account balance, not tied to any invoice.
-// The Daftra "Payments Report" you check by hand adds both together, so we
-// do too.
-
-// Sum of payments applied to a specific invoice on `dateStr`.
-function getDaftraInvoicePayments(dateStr) {
-    const payload = daftraGet_("invoice_payments.json", {
-        date_from: dateStr,
-        date_to: dateStr,
-        limit: 100,
-    });
-
-    return daftraExtractList_(payload)
-        .map((item) => daftraUnwrap_(item, "InvoicePayment"))
-        .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-}
-
-// Sum of payments credited straight to a client's account balance (not
-// tied to any invoice) on `dateStr`.
-function getDaftraClientAccountPayments(dateStr) {
-    const payload = daftraGet_("client_payments.json", {
-        date_from: dateStr,
-        date_to: dateStr,
-        limit: 100,
-    });
-
-    return daftraExtractList_(payload)
-        .map((item) => daftraUnwrap_(item, "ClientPayment"))
-        .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-}
-
-// Total customer payments received on `dateStr` -- invoice-tied plus
-// direct-to-account, matching what the Daftra Payments Report shows.
-function getDaftraCustomerPayments(dateStr) {
-    return (
-        getDaftraInvoicePayments(dateStr) +
-        getDaftraClientAccountPayments(dateStr)
-    );
-}
-
 // Sum of expenses recorded in Daftra on `dateStr` -- your "Other Expenses".
 // The heavy/normal "Daily Expense" estimate stays a manual pick, since
 // that's a judgment call, not something Daftra tracks.
@@ -393,25 +319,14 @@ function getDaftraCashDeposit(dateStr) {
 // falls back to 0 for that figure and reports what broke so the form
 // still opens and you can fill that one in by hand.
 function getDaftraDailyTotals(dateStr) {
+    // Credit Invoices/Customer Payments are deliberately not fetched any more
+    // -- they're no longer part of the Sales report (see
+    // CREDIT_AND_CUSTOMER_PAYMENTS_DISABLED_FROM in Utils.gs).
     const result = {
-        creditInvoices: 0,
-        customerPayments: 0,
         otherExpenses: 0,
         cashDeposit: 0,
         errors: [],
     };
-
-    try {
-        result.creditInvoices = getDaftraCreditInvoices(dateStr);
-    } catch (e) {
-        result.errors.push("Credit Invoices: " + e.message);
-    }
-
-    try {
-        result.customerPayments = getDaftraCustomerPayments(dateStr);
-    } catch (e) {
-        result.errors.push("Customer Payments: " + e.message);
-    }
 
     try {
         result.otherExpenses = getDaftraOtherExpenses(dateStr);

@@ -158,11 +158,9 @@ function renderSalesTable(rows) {
 
 <th>Date</th>
 <th>Closing Cash</th>
-<th>Credit</th>
 <th>Payments</th>
 <th>Daily Exp.</th>
 <th>Other Exp.</th>
-<th>Client Pay</th>
 <th>Withdrawal</th>
 <th>Deposit</th>
 <th>Debt W/D</th>
@@ -186,15 +184,11 @@ function renderSalesTable(rows) {
 
 <td>${money(r.cash)}</td>
 
-<td>${money(r.creditInvoices)}</td>
-
 <td>${money(r.payments)}</td>
 
 <td>${money(r.dailyExpense)}</td>
 
 <td>${money(r.otherExpenses)}</td>
-
-<td>${money(r.customerPayments)}</td>
 
 <td${r.withdrawalNote ? ` class="hasNote" title="${escapeAttr(r.withdrawalNote)}"` : ""}>${money(r.cashWithdrawal)}${r.withdrawalNote ? " 📝" : ""}</td>
 
@@ -239,16 +233,4 @@ function renderSalesTable(rows) {
     if (newRow) {
         newRow.onclick = showSalesForm;
     }
-}
-
-function calculateTotalSalesClient(r) {
-    return (
-        Number(r.cash) +
-        Number(r.creditInvoices) +
-        Number(r.payments) +
-        Number(r.dailyExpense) +
-        Number(r.otherExpenses) -
-        Number(r.customerPayments) -
-        Number(r.cashDeposit)
-    );
 }

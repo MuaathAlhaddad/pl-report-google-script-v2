@@ -60,15 +60,11 @@ function getAllSalesRows() {
 
             cash: Number(raw[1]) || 0,
 
-            creditInvoices: Number(raw[2]) || 0,
-
             payments: Number(raw[4]) || 0,
 
             dailyExpense: Number(raw[5]) || 0,
 
             otherExpenses: Number(raw[6]) || 0,
-
-            customerPayments: Math.abs(Number(raw[7])) || 0,
 
             cashWithdrawal: Number(raw[8]) || 0,
 

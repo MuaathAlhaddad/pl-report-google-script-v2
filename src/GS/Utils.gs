@@ -20,14 +20,19 @@ function formatMoney(value) {
     });
 }
 
+// First Sales report date (yyyy-MM-dd) whose Total Sales no longer includes
+// Credit Invoices (column C) or Customer Payments (column H). Reports from
+// here on store 0 in both columns; earlier rows keep their historical values
+// and, if they're ever recalculated (Edit modal / forward cascade), keep the
+// formula they were originally saved with -- see calculateTotalSalesForDate_.
+const CREDIT_AND_CUSTOMER_PAYMENTS_DISABLED_FROM = "2026-10-06";
+
 function calculateTotalSales(data) {
     const paymentInfo = calculatePayments(data.payments);
 
     const closingCash = Number(data.cash) || 0;
-    const creditInvoices = Number(data.creditInvoices) || 0;
     const dailyExpense = Number(data.dailyExpense) || 0;
     const otherExpenses = Number(data.otherExpenses) || 0;
-    const customerPayments = Number(data.customerPayments) || 0;
     const cashDeposit = Number(data.cashDeposit) || 0;
     const startingCash = Number(data.startingCash) || 0;
 
@@ -39,14 +44,29 @@ function calculateTotalSales(data) {
 
     return (
         closingCash +
-        creditInvoices +
         paymentInfo.total +
         dailyExpense +
         otherExpenses +
         debtWithdrawal -
-        customerPayments -
         cashDeposit -
         startingCash
+    );
+}
+
+// Only for recalculating an existing row: one dated before
+// CREDIT_AND_CUSTOMER_PAYMENTS_DISABLED_FROM was saved with Credit Invoices
+// added and Customer Payments subtracted, so it keeps that formula -- using
+// the values already stored in its own row -- rather than having its
+// historical Total Sales silently rewritten by an edit or cascade.
+function calculateTotalSalesForDate_(dateStr, data) {
+    const total = calculateTotalSales(data);
+
+    if (dateStr >= CREDIT_AND_CUSTOMER_PAYMENTS_DISABLED_FROM) return total;
+
+    return (
+        total +
+        (Number(data.creditInvoices) || 0) -
+        (Number(data.customerPayments) || 0)
     );
 }
 
