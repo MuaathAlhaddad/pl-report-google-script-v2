@@ -2,6 +2,8 @@
 // inject on first visit -- see JS/bulkPayment.js's header comment for why
 // this isn't just baked into the initial page.
 function getBulkPaymentBundle() {
+    assertFeatureEnabled_("BULK_PAYMENT", "Bulk Payment");
+
     return {
         html: include("bulkPayment.html"),
         css: include("bulkPayment.css"),
@@ -12,6 +14,8 @@ function getBulkPaymentBundle() {
 // Reuses the same client picker data as the Bulk Invoice tool
 // (searchDaftraClients() lives in BulkInvoice.gs).
 function getBulkPaymentInitData() {
+    assertFeatureEnabled_("BULK_PAYMENT", "Bulk Payment");
+
     return {
         clients: searchDaftraClients(),
         treasuries: searchDaftraTreasuries(),
@@ -43,6 +47,8 @@ function searchDaftraTreasuries() {
 // succeeds or fails on its own, so one bad client ID doesn't lose the rest
 // of the batch. rows: [{ clientId, clientName, amount }]
 function createBulkClientPayments(dateStr, paymentMethod, treasuryId, rows) {
+    assertFeatureEnabled_("BULK_PAYMENT", "Bulk Payment");
+
     return rows.map((row) => {
         try {
             const amount = Number(row.amount) || 0;

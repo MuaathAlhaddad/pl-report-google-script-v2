@@ -60,6 +60,8 @@ Daftra is reachable two genuinely different ways, and mixing them up is the most
 - **`/api2/*.json`** (e.g. `invoices.json`, `client_payments.json`), authenticated with an `APIKEY` header (`DAFTRA_API_KEY` / `DAFTRA_SUBDOMAIN` Script Properties). This is what every read (`getDaftra*` functions) and write (`createDaftraInvoice_`, `createDaftraClientPayment_`) in this codebase uses.
 - **`/owner/...` HTML pages** — Daftra's regular web UI, session-cookie-gated, with **no JSON API backing them at all** for some reports (confirmed for the Supplier Payments report: it's plain server-rendered HTML, no XHR/fetch call to reuse). Don't assume a report you can see in the browser has an API equivalent — check via `daftraGet_` against a guessed endpoint name and a `test*()` diagnostic function before building UI around it.
 
+**Both `Bulk*` tools are currently disabled** via `CONFIG.FEATURES` (`Config.gs`): their tabs are hidden and their server entry points throw. See DECISIONS.md (2026-10-10).
+
 Other load-bearing, non-obvious facts about this integration:
 - List responses wrap each item one level deeper than expected (e.g. `{ "Invoice": { ... } }`, not the fields directly on the item) — `daftraUnwrap_(item, key)` handles this; `daftraExtractList_(payload)` handles the outer wrapper key also being inconsistent across endpoints (`data`, `result`, or the model name).
 - A 400 response's top-level `message` is a generic "fix the errors below" — the actual reason is in `validation_errors`, parsed out explicitly in `createDaftraInvoice_`/`createDaftraClientPayment_` rather than surfaced raw.

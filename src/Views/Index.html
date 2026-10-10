@@ -24,6 +24,9 @@
             include("Views/sales-edit-modal.html"); ?>
         </div>
 
+        <script>
+            const FEATURES = <?!= JSON.stringify(CONFIG.FEATURES); ?>;
+        </script>
         <?!= include("JS/app.js"); ?> <?!= include("JS/insights.js"); ?> <?!=
         include("JS/expenses.js"); ?> <?!= include("JS/router.js"); ?> <?!=
         include("JS/sales.js"); ?> <?!= include("JS/salesEdit.js"); ?> <?!=

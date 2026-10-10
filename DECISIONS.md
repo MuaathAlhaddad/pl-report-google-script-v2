@@ -12,6 +12,22 @@ full technical detail on each.
 
 ---
 
+## 2026-10-10 — Bulk Invoice and Bulk Payment disabled (not removed) behind CONFIG.FEATURES
+
+**Decision:** Both tools are switched off via `CONFIG.FEATURES.BULK_INVOICE` /
+`BULK_PAYMENT` = `false` (`Config.gs`). When a flag is off, its tab button is removed on load
+(`FEATURE_TABS`/`isTabEnabled()` in `app.js`, with the flags injected into `Index.html`),
+`showTab()` sends a disabled tab back to the dashboard, and the server entry points
+(`getBulk*Bundle`, `getBulk*InitData`, `createBulkSalesInvoices`, `createBulkClientPayments`)
+throw via `assertFeatureEnabled_()`. That server-side guard is the part that really matters,
+because `google.script.run` can call any global function. All the code, and the Daily Entry Log
+history, stay as they are. Setting a flag back to `true` re-enables that tool.
+
+**Why:** Owner's request, 2026-10-10. The owner asked for the tools to be disabled, not deleted,
+so they can be turned back on later.
+
+---
+
 ## 2026-10-10 — "This Week's Supplier Payments" dashboard calendar removed
 
 **Decision:** The weekly supplier calendar at the top of the dashboard is gone entirely: its

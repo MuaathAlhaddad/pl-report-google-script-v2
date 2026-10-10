@@ -5,6 +5,8 @@ function showDashboard() {
 }
 
 function showTab(tab) {
+    if (!isTabEnabled(tab)) tab = "dashboard";
+
     APP.currentTab = tab;
 
     document.getElementById("dashboardPage").style.display =

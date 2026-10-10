@@ -2,6 +2,8 @@
 // inject on first visit -- see JS/bulkInvoice.js's header comment for why
 // this isn't just baked into the initial page.
 function getBulkInvoiceBundle() {
+    assertFeatureEnabled_("BULK_INVOICE", "Bulk Invoice");
+
     return {
         html: include("bulkInvoice.html"),
         css: include("bulkInvoice.css"),
@@ -26,6 +28,8 @@ const DUE_INVOICE_SERVICE_NAME = "فاتورة مستحقة";
 // Clients + the resolved due-invoice service, fetched together once per
 // page load.
 function getBulkInvoiceInitData() {
+    assertFeatureEnabled_("BULK_INVOICE", "Bulk Invoice");
+
     return {
         clients: searchDaftraClients(),
         service: findDueInvoiceService_(),
@@ -150,6 +154,8 @@ function fetchDaftraLookupList_(path, unwrapKey, mapFn) {
 // invoice) -- no payment is ever attached. rows: [{ clientId, clientName,
 // clientEmail, amount }]
 function createBulkSalesInvoices(dateStr, rows) {
+    assertFeatureEnabled_("BULK_INVOICE", "Bulk Invoice");
+
     const service = findDueInvoiceService_();
 
     return rows.map((row) => {

@@ -7,7 +7,21 @@ window.onload = function () {
     initialize();
 };
 
+// Tabs that belong to a feature switched off in CONFIG.FEATURES (Config.gs).
+const FEATURE_TABS = {
+    bulkInvoice: "BULK_INVOICE",
+    bulkPayment: "BULK_PAYMENT",
+};
+
+function isTabEnabled(tab) {
+    return !FEATURE_TABS[tab] || FEATURES[FEATURE_TABS[tab]];
+}
+
 function initialize() {
+    Object.keys(FEATURE_TABS).forEach((tab) => {
+        if (!isTabEnabled(tab)) document.getElementById(tab + "Tab").remove();
+    });
+
     const input = document.getElementById("periodSelector");
     const today = new Date();
 
