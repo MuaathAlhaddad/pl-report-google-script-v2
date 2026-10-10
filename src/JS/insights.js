@@ -32,11 +32,10 @@ function loadInsightsDashboard() {
     Promise.all([
         gsRun("getYearlyInsights", year),
         gsRun("getHijriYearlyInsights", APP.period),
-        gsRun("getSupplierCalendar"),
         gsRun("getSales", APP.period),
     ])
-        .then(([yearData, hijriYearData, suppliers, monthSales]) => {
-            renderInsightsDashboard(yearData, hijriYearData, suppliers, monthSales);
+        .then(([yearData, hijriYearData, monthSales]) => {
+            renderInsightsDashboard(yearData, hijriYearData, monthSales);
             hideLoading();
         })
         .catch((err) => {
@@ -45,7 +44,7 @@ function loadInsightsDashboard() {
         });
 }
 
-function renderInsightsDashboard(yearData, hijriYearData, suppliers, monthSales) {
+function renderInsightsDashboard(yearData, hijriYearData, monthSales) {
     let html = `
     <div class="pageHeader">
         <div>
@@ -53,11 +52,6 @@ function renderInsightsDashboard(yearData, hijriYearData, suppliers, monthSales)
             <div class="pageSubtitle">Sales &amp; Expenses Insights</div>
         </div>
         <div class="pagePeriod">${formatPeriod(APP.period)}</div>
-    </div>
-
-    <div class="dashboardSection">
-        <div class="sectionTitle">This Week's Supplier Payments</div>
-        ${renderSupplierCalendar(suppliers)}
     </div>
 
     <div class="dashboardSection">
@@ -307,101 +301,3 @@ function renderYearTotalsTable(totals, year) {
     `;
 }
 
-// ---------- Supplier calendar ----------
-
-const DAY_NAMES = {
-    Sun: "Sunday",
-    Mon: "Monday",
-    Tue: "Tuesday",
-    Wed: "Wednesday",
-    Thu: "Thursday",
-    Fri: "Friday",
-    Sat: "Saturday",
-};
-
-function renderSupplierCalendar(suppliers) {
-    const todayKey = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
-        new Date().getDay()
-    ];
-
-    return `
-        <div class="supplierCalendar" id="supplierCalendar">
-            ${suppliers
-                .map(
-                    (s) => `
-                <div class="supplierCell ${s.day === todayKey ? "today" : ""}" data-day="${s.day}">
-                    <div class="supplierDayLabel">${DAY_NAMES[s.day]}</div>
-
-                    <div class="supplierItems">
-                        ${
-                            s.items.length
-                                ? s.items
-                                      .map(
-                                          (item) => `
-                            <div class="supplierItem ${item.done ? "done" : ""}">
-                                <input
-                                    type="checkbox"
-                                    ${item.done ? "checked" : ""}
-                                    onchange="toggleSupplierItem(this, ${item.row})"
-                                />
-                                <span class="supplierItemText">${escapeHtml(item.text)}</span>
-                                <button
-                                    class="supplierItemDelete"
-                                    onclick="deleteSupplierItem(${item.row})"
-                                    title="Remove"
-                                >×</button>
-                            </div>
-                        `,
-                                      )
-                                      .join("")
-                                : `<div class="supplierEmpty">Nothing yet</div>`
-                        }
-                    </div>
-
-                    <input
-                        type="text"
-                        class="supplierAddInput"
-                        placeholder="+ add note / todo"
-                        onkeydown="if(event.key==='Enter') addSupplierItem(this, '${s.day}');"
-                    />
-                </div>
-            `,
-                )
-                .join("")}
-        </div>
-    `;
-}
-
-function replaceSupplierCalendar(suppliers) {
-    document.getElementById("supplierCalendar").outerHTML =
-        renderSupplierCalendar(suppliers);
-}
-
-function toggleSupplierItem(checkbox, row) {
-    checkbox.closest(".supplierItem").classList.toggle("done", checkbox.checked);
-
-    gsRun("toggleSupplierItem", row, checkbox.checked).catch((err) => {
-        checkbox.checked = !checkbox.checked;
-        checkbox
-            .closest(".supplierItem")
-            .classList.toggle("done", checkbox.checked);
-        showError(err);
-    });
-}
-
-function addSupplierItem(input, day) {
-    const text = input.value.trim();
-    if (!text) return;
-
-    input.disabled = true;
-
-    gsRun("addSupplierItem", day, text)
-        .then(replaceSupplierCalendar)
-        .catch(showError);
-}
-
-function deleteSupplierItem(row) {
-    gsRun("deleteSupplierItem", row)
-        .then(replaceSupplierCalendar)
-        .catch(showError);
-}

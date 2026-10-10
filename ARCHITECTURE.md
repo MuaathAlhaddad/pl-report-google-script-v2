@@ -11,7 +11,7 @@ see "The three-project system" below for the durable version of what the linked 
 `pl-report-google-script-v2` is the **owner-only** tool: a Google Apps Script web app, container-
 bound to a Google Sheet, used every night to file a daily cash/sales report. It auto-fills fields
 from Daftra, provides bulk Daftra invoice/payment entry tools, and hosts a P&L-style dashboard
-(monthly/yearly/Hijri views), expense tracking, goals, and a supplier calendar. No employee-facing
+(monthly/yearly/Hijri views), expense tracking, and goals. No employee-facing
 surface — but it writes into Sheet tabs that employees later see via the separate PWA. See
 `CLAUDE.md` for file-level detail.
 

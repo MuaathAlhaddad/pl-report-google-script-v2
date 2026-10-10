@@ -50,7 +50,7 @@ When adding a new tab with any real amount of markup/logic, follow this pattern 
 
 ## Data layer
 
-The bound Google Sheet is the only datastore; `CONFIG.SHEETS` (`Config.gs`) names the tabs the app manages directly (`Sales`, `Expenses`, `ExpenseSetup`, `Goals`, `Suppliers`). Sheets not listed there but still read/written by this app (`Daily Entry Log`, `Import Short Debtors`) define their own sheet-name constants next to the code that owns them, since they're single-feature concerns.
+The bound Google Sheet is the only datastore; `CONFIG.SHEETS` (`Config.gs`) names the tabs the app manages directly (`Sales`, `Expenses`, `ExpenseSetup`, `Goals`). Sheets not listed there but still read/written by this app (`Daily Entry Log`, `Import Short Debtors`) define their own sheet-name constants next to the code that owns them, since they're single-feature concerns.
 
 **This spreadsheet is shared with a separate, sibling Apps Script project, `employee-debts-api`** (a standalone JSON API for an employee-facing PWA, `employee-debts-app` — both live outside this repo). That project opens the same file by ID (`SpreadsheetApp.openById()`, not container binding) and reads/writes the `Debts Snapshot` and `Employees` tabs. Changes to those two tabs' column layout are a cross-repo breaking change.
 

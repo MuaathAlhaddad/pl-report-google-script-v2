@@ -12,6 +12,19 @@ full technical detail on each.
 
 ---
 
+## 2026-10-10 — "This Week's Supplier Payments" dashboard calendar removed
+
+**Decision:** The weekly supplier calendar at the top of the dashboard is gone entirely: its
+section in `insights.js`, `Suppliers.gs` (`getSupplierCalendar`, `addSupplierItem`,
+`toggleSupplierItem`, `deleteSupplierItem`, and the hard-coded default supplier per weekday),
+`CONFIG.SHEETS.SUPPLIERS`, and its CSS. The `Suppliers` tab in the bound Sheet was created by
+this feature only and is no longer read or written; it is deleted by hand, not in code.
+
+**Why:** Owner's request, 2026-10-10. Nothing else in this repo or in `employee-debts-api` used
+the `Suppliers` tab, so removing it doesn't affect any other sheet.
+
+---
+
 ## 2026-10-07 — Credit Invoices and Customer Payments removed from Total Sales, with a date cutoff
 
 **Decision:** `calculateTotalSales()` no longer adds Credit Invoices or subtracts Customer
