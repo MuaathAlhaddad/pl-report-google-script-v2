@@ -70,7 +70,8 @@ surface — but it writes into Sheet tabs that employees later see via the separ
   the live URL here *is* the `@HEAD` deployment. `npm run watch` (chokidar) rebuilds and pushes on
   every save automatically — no `clasp deploy` needed for normal iteration, and the user is
   expected to keep that watcher running rather than push manually. This only works because only
-  the owner, who has edit access to the script, ever opens this app. Contrast with
+  the owner, who has edit access to the script, ever opens this app — enforced since 2026-10-14
+  by `webapp.access: "MYSELF"` plus the `Auth.gs` server-side guard (see DECISIONS.md). Contrast with
   `employee-debts-api`, which must be deployed to a specific versioned id or employees never
   receive the update.
 

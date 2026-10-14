@@ -5,6 +5,23 @@ Application changes, newest first. The reasoning behind each change goes in
 
 ---
 
+## 2026-10-14
+
+### Security — Web app restricted to the owner
+
+- **`appsscript.json`:** `webapp.access` is now `MYSELF` (was `ANYONE`, i.e. any Google
+  account). This governs the `@HEAD` URL the owner uses.
+- **New `Auth.gs`:** `requireAuthorizedUser_()` guards every client-callable server function;
+  `doGet()` shows an "Access denied" page to anyone else. Allowed accounts: the
+  `ALLOWED_EMAILS` Script Property, or only the script owner when it's unset.
+- These guard calls were already live before this commit (pushed but uncommitted); this
+  commit records them exactly as they were found in the Apps Script project.
+
+**Reason:** Anyone with a Google account and the URL could previously run the app with the
+owner's permissions.
+
+---
+
 ## 2026-10-07
 
 ### Changed — Disable `Credit Invoices` and `Customer Payments` from the Sales calculation

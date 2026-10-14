@@ -1,4 +1,5 @@
 function getExpenseSetup() {
+    requireAuthorizedUser_();
     return readExpenseSetup_().setup;
 }
 

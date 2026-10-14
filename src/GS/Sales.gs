@@ -1,4 +1,5 @@
 function getNewReportData() {
+    requireAuthorizedUser_();
     const date = getNextDate();
 
     // Auto-fill what Daftra already knows; supplier Payments and Cash
@@ -25,6 +26,7 @@ function getNewReportData() {
 }
 
 function getStartingCash() {
+    requireAuthorizedUser_();
     const sheet = SpreadsheetApp.getActive().getSheetByName(
         CONFIG.SHEETS.SALES,
     );
@@ -50,6 +52,7 @@ function getStartingCash() {
 }
 
 function getReport(row) {
+    requireAuthorizedUser_();
     const sheet = SpreadsheetApp.getActive().getSheetByName(
         CONFIG.SHEETS.SALES,
     );
@@ -116,6 +119,7 @@ function findSalesRowByDate_(sheet, dateStr) {
 // getValues() on that cell would return the evaluated total, not the
 // original expression.
 function getReportForEdit(dateStr) {
+    requireAuthorizedUser_();
     const sheet = SpreadsheetApp.getActive().getSheetByName(
         CONFIG.SHEETS.SALES,
     );
@@ -265,6 +269,7 @@ function validateEditData_(data) {
 // Edits are serialized the same way saves are (see saveReport()) so a
 // double-click/retry can't race the row lookup and the write.
 function updateReport(originalDate, data) {
+    requireAuthorizedUser_();
     const lock = LockService.getScriptLock();
     lock.waitLock(10000);
 
@@ -459,6 +464,7 @@ function logSalesEdit_(reportDate, before, after) {
 // Serialized the same way updateReport()/saveReport() are, for the same
 // reason: the row lookup and the write can't be allowed to race a retry.
 function deleteReport(dateStr) {
+    requireAuthorizedUser_();
     const lock = LockService.getScriptLock();
     lock.waitLock(10000);
 
@@ -585,6 +591,7 @@ function salesDateExists_(sheet, dateStr) {
 }
 
 function saveReport(data) {
+    requireAuthorizedUser_();
     // Serialize saves so a double-click/retry can't slip a second row in
     // between the duplicate check and the write below.
     const lock = LockService.getScriptLock();

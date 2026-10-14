@@ -1,4 +1,5 @@
 function getDashboard(period) {
+    requireAuthorizedUser_();
     const sales = getSales(period);
     const summary = summarizeSales(sales);
 
@@ -28,6 +29,7 @@ function getDashboard(period) {
 // instead of calling getSales() per period, since each sheet read is a slow
 // round trip.
 function getAllSalesRows() {
+    requireAuthorizedUser_();
     const sheet = SpreadsheetApp.getActive().getSheetByName(
         CONFIG.SHEETS.SALES,
     );
@@ -86,12 +88,14 @@ function getAllSalesRows() {
 }
 
 function getSales(period) {
+    requireAuthorizedUser_();
     return getAllSalesRows()
         .filter((r) => r.period === period)
         .map((r) => Object.assign({}, r, { date: formatDate(r.date) }));
 }
 
 function getSummary(period) {
+    requireAuthorizedUser_();
     return summarizeSales(getSales(period));
 }
 

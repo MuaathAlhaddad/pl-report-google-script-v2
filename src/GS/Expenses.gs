@@ -13,6 +13,7 @@ const COL = {
 };
 
 function saveExpenses(data) {
+    requireAuthorizedUser_();
     const period = data.period;
 
     const expenses = data.expenses;
@@ -65,6 +66,7 @@ function saveExpenses(data) {
 // everything from it in memory instead of re-reading per period/breakdown,
 // since each sheet read is a slow round trip.
 function getAllExpenseRows() {
+    requireAuthorizedUser_();
     const sheet = SpreadsheetApp.getActive().getSheetByName(
         CONFIG.SHEETS.EXPENSES,
     );
@@ -97,10 +99,12 @@ function getAllExpenseRows() {
 }
 
 function getExpenses(period) {
+    requireAuthorizedUser_();
     return sumExpenseRows(getRowsForPeriod(getAllExpenseRows(), period));
 }
 
 function getExpenseDashboard(period) {
+    requireAuthorizedUser_();
     const rows = getRowsForPeriod(getAllExpenseRows(), period);
 
     return {
@@ -115,14 +119,17 @@ function getExpenseDashboard(period) {
 }
 
 function getExpenseCategories(period) {
+    requireAuthorizedUser_();
     return categorizeExpenseRows(getRowsForPeriod(getAllExpenseRows(), period));
 }
 
 function getExpenseDetails(period) {
+    requireAuthorizedUser_();
     return toExpenseDetails(getRowsForPeriod(getAllExpenseRows(), period));
 }
 
 function getExpenseSubcategories(period) {
+    requireAuthorizedUser_();
     const result = {};
 
     getRowsForPeriod(getAllExpenseRows(), period).forEach((r) => {
@@ -151,16 +158,19 @@ function getPreviousPeriod(period) {
 }
 
 function getPreviousMonthExpenses(period) {
+    requireAuthorizedUser_();
     const previous = getPreviousPeriod(period);
 
     return toExpenseDetails(getRowsForPeriod(getAllExpenseRows(), previous));
 }
 
 function expensesExist(period) {
+    requireAuthorizedUser_();
     return getRowsForPeriod(getAllExpenseRows(), period).length > 0;
 }
 
 function getExpenseWizard(period) {
+    requireAuthorizedUser_();
     const rows = getAllExpenseRows();
 
     const expenseSetup = readExpenseSetup_();

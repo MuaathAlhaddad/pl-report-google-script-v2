@@ -1,4 +1,5 @@
 function getYearlyInsights(year) {
+    requireAuthorizedUser_();
     const months = [];
     for (let m = 1; m <= 12; m++) months.push(String(m).padStart(2, "0"));
 

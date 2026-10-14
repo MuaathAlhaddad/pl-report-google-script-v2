@@ -71,6 +71,7 @@ function calculateTotalSalesForDate_(dateStr, data) {
 }
 
 function getNextDate() {
+    requireAuthorizedUser_();
     const sheet = SpreadsheetApp.getActive().getSheetByName(
         CONFIG.SHEETS.SALES,
     );

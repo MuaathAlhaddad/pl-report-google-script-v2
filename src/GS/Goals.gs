@@ -1,4 +1,5 @@
 function getGoal(period) {
+    requireAuthorizedUser_();
     const sheet = SpreadsheetApp.getActive().getSheetByName(
         CONFIG.SHEETS.GOALS,
     );

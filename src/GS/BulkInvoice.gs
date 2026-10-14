@@ -2,6 +2,7 @@
 // inject on first visit -- see JS/bulkInvoice.js's header comment for why
 // this isn't just baked into the initial page.
 function getBulkInvoiceBundle() {
+    requireAuthorizedUser_();
     assertFeatureEnabled_("BULK_INVOICE", "Bulk Invoice");
 
     return {
@@ -28,6 +29,7 @@ const DUE_INVOICE_SERVICE_NAME = "فاتورة مستحقة";
 // Clients + the resolved due-invoice service, fetched together once per
 // page load.
 function getBulkInvoiceInitData() {
+    requireAuthorizedUser_();
     assertFeatureEnabled_("BULK_INVOICE", "Bulk Invoice");
 
     return {
@@ -84,6 +86,7 @@ const BULK_INVOICE_LOOKUP_MAX_PAGES = 200;
 // testDaftraProductsAndClients() in Daftra.gs to sanity-check before relying
 // on this in the UI.
 function searchDaftraProducts() {
+    requireAuthorizedUser_();
     return fetchDaftraLookupList_("products.json", "Product", (p) => ({
         // Daftra's JSON sometimes comes back with numeric-looking fields as
         // strings (confirmed elsewhere, e.g. invoice payment_status) --
@@ -101,6 +104,7 @@ function searchDaftraProducts() {
 }
 
 function searchDaftraClients() {
+    requireAuthorizedUser_();
     return fetchDaftraLookupList_("clients.json", "Client", (c) => ({
         id: Number(c.id),
         name:
@@ -154,6 +158,7 @@ function fetchDaftraLookupList_(path, unwrapKey, mapFn) {
 // invoice) -- no payment is ever attached. rows: [{ clientId, clientName,
 // clientEmail, amount }]
 function createBulkSalesInvoices(dateStr, rows) {
+    requireAuthorizedUser_();
     assertFeatureEnabled_("BULK_INVOICE", "Bulk Invoice");
 
     const service = findDueInvoiceService_();

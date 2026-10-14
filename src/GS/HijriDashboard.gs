@@ -17,6 +17,7 @@ const HIJRI_MONTH_NAMES = [
 // dashboard) and reports the Hijri year that its 1st falls in, so the Hijri
 // overview tracks the same month picker as everything else.
 function getHijriYearlyInsights(period) {
+    requireAuthorizedUser_();
     const months = [];
     for (let m = 1; m <= 12; m++) months.push(String(m).padStart(2, "0"));
 

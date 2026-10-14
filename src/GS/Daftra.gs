@@ -287,6 +287,7 @@ function daftraUnwrap_(item, key) {
 // The heavy/normal "Daily Expense" estimate stays a manual pick, since
 // that's a judgment call, not something Daftra tracks.
 function getDaftraOtherExpenses(dateStr) {
+    requireAuthorizedUser_();
     const payload = daftraGet_("expenses.json", {
         date_from: dateStr,
         date_to: dateStr,
@@ -303,6 +304,7 @@ function getDaftraOtherExpenses(dateStr) {
 // "incoming Cash Receipt" money lives, i.e. cash added into the drawer
 // that isn't a sale -- your "Cash Deposit" field.
 function getDaftraCashDeposit(dateStr) {
+    requireAuthorizedUser_();
     const payload = daftraGet_("incomes.json", {
         date_from: dateStr,
         date_to: dateStr,
@@ -319,6 +321,7 @@ function getDaftraCashDeposit(dateStr) {
 // falls back to 0 for that figure and reports what broke so the form
 // still opens and you can fill that one in by hand.
 function getDaftraDailyTotals(dateStr) {
+    requireAuthorizedUser_();
     // Credit Invoices/Customer Payments are deliberately not fetched any more
     // -- they're no longer part of the Sales report (see
     // CREDIT_AND_CUSTOMER_PAYMENTS_DISABLED_FROM in Utils.gs).
@@ -347,6 +350,7 @@ function getDaftraDailyTotals(dateStr) {
 // Daftra responses before trusting the auto-filled form. Change TEST_DATE
 // to a day you know has real invoices/payments/expenses in Daftra.
 function testDaftraConnection() {
+    requireAuthorizedUser_();
     // Edit this to any date you want to spot-check against Daftra's own
     // reports (e.g. "2026-08-20"). Defaults to today.
     const TEST_DATE = Utilities.formatDate(
@@ -434,6 +438,7 @@ function testDaftraConnection() {
 // of real names, the guessed field names are wrong and need fixing before
 // the picker in the UI will be usable.
 function testDaftraProductsAndClients() {
+    requireAuthorizedUser_();
     Logger.log("--- Raw products response (page 1) ---");
     Logger.log(
         JSON.stringify(daftraGet_("products.json", { page: 1, limit: 5 }), null, 2),
@@ -457,6 +462,7 @@ function testDaftraProductsAndClients() {
 // account. This logs the raw response so you can see whether the endpoint
 // exists at all and, if so, what the real field names are.
 function testDaftraTreasuries() {
+    requireAuthorizedUser_();
     Logger.log("--- Raw treasuries response (page 1) ---");
     try {
         Logger.log(

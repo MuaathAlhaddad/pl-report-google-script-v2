@@ -12,6 +12,34 @@ full technical detail on each.
 
 ---
 
+## 2026-10-14 — Web app locked to the owner: manifest access MYSELF + server-side guard
+
+**Decision:** Two layers.
+1. `appsscript.json` `webapp.access` changed from `ANYONE` to `MYSELF`. This is what controls
+   "Who has access" for the `@HEAD` deployment the owner actually uses (Head deployment ID opened
+   via `/exec`), so Google itself now refuses any other account.
+2. `Auth.gs` adds `requireAuthorizedUser_()`, called first in every client-callable server
+   function, and `doGet()` returns an "Access denied" page instead of the app. Allowed accounts
+   are the `ALLOWED_EMAILS` Script Property (comma-separated) or, when unset, only the script
+   owner (`Session.getEffectiveUser()`). It fails closed: a blank active-user email is treated
+   as unauthorized. Sheet-menu functions (`onOpen`, `importShortDebtsFromNotebook`,
+   `showTodaysEntrySummary`) are not guarded, since they need `SpreadsheetApp.getUi()` and run
+   only from the Sheet with the Sheet's own permissions.
+
+**Why:** The app runs as the owner (`USER_DEPLOYING`) and was open to "Anyone with a Google
+Account", so anyone signed in to any Gmail account who had the URL could read the Sales/Expenses
+sheets and save, edit or delete reports with the owner's permissions, and reach Daftra through
+the owner's API key. Layer 2 matters on its own because `google.script.run` can call any global
+function, and because it also protects against the manifest being changed back by mistake. The
+guard code was found already live (pushed but never committed); on 2026-10-14 it was committed
+byte-for-byte as found, and the manifest change was made in the online editor and committed here.
+
+**Not yet handled:** 89 old versioned deployments (Version 1–89, 4–31 Jul 2026, all "Anyone
+with a Google Account", executing as the owner, none containing the guard) are still active.
+They are not used by the owner but each has a working `/exec` URL.
+
+---
+
 ## 2026-10-10 — Bulk Invoice and Bulk Payment disabled (not removed) behind CONFIG.FEATURES
 
 **Decision:** Both tools are switched off via `CONFIG.FEATURES.BULK_INVOICE` /
