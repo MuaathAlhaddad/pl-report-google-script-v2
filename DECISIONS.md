@@ -34,9 +34,12 @@ function, and because it also protects against the manifest being changed back b
 guard code was found already live (pushed but never committed); on 2026-10-14 it was committed
 byte-for-byte as found, and the manifest change was made in the online editor and committed here.
 
-**Not yet handled:** 89 old versioned deployments (Version 1–89, 4–31 Jul 2026, all "Anyone
-with a Google Account", executing as the owner, none containing the guard) are still active.
-They are not used by the owner but each has a working `/exec` URL.
+**Old versioned deployments archived (2026-10-15):** 89 versioned deployments (Version 1–89,
+4–31 Jul 2026, one per past `clasp deploy`, all "Anyone with a Google Account", executing as the
+owner, none containing the guard) were archived at the owner's request. Each had its own working
+`/exec` URL running old code. Manage deployments now shows "No active deployment"; the `@HEAD`
+URL is unaffected. **Don't run `npm run deploy` / `clasp deploy`** — it creates a new versioned
+deployment with its own URL that nothing here uses.
 
 ---
 
