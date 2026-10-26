@@ -2,8 +2,8 @@ function getNewReportData() {
     requireAuthorizedUser_();
     const date = getNextDate();
 
-    // Auto-fill what Daftra already knows; supplier Payments and Cash
-    // Withdrawal stay manual since Daftra has no clean data for those.
+    // Auto-fill what Daftra already knows: Other Expenses, Cash Deposit and
+    // (since 2026-10-26) supplier Payments. Cash Withdrawal stays manual.
     // Credit Invoices/Customer Payments are no longer part of the report
     // (see CREDIT_AND_CUSTOMER_PAYMENTS_DISABLED_FROM in Utils.gs).
     const daftra = getDaftraDailyTotals(date);
@@ -12,7 +12,10 @@ function getNewReportData() {
         date,
         startingCash: getStartingCash(),
         cash: 0,
-        payments: "",
+        payments: daftra.supplierPayments
+            ? daftra.supplierPayments.expression
+            : "",
+        supplierPayments: daftra.supplierPayments,
         dailyExpense: 285,
         otherExpenses: daftra.otherExpenses,
         cashWithdrawal: 0,
@@ -598,10 +601,21 @@ function saveReport(data) {
     lock.waitLock(10000);
 
     try {
-        return saveReportLocked_(data);
+        saveReportLocked_(data);
     } finally {
         lock.releaseLock();
     }
+
+    // The report is already saved at this point; the snapshot is a record
+    // for later reconciliation and must never block or undo the save.
+    let snapshotError = "";
+    try {
+        savePaymentsSnapshot_(data.date, data.payments);
+    } catch (e) {
+        snapshotError = e.message;
+    }
+
+    return { saved: true, snapshotError };
 }
 
 function saveReportLocked_(data) {

@@ -51,7 +51,7 @@ When adding a new tab with any real amount of markup/logic, follow this pattern 
 
 ## Data layer
 
-The bound Google Sheet is the only datastore; `CONFIG.SHEETS` (`Config.gs`) names the tabs the app manages directly (`Sales`, `Expenses`, `ExpenseSetup`, `Goals`). Sheets not listed there but still read/written by this app (`Daily Entry Log`, `Import Short Debtors`) define their own sheet-name constants next to the code that owns them, since they're single-feature concerns.
+The bound Google Sheet is the only datastore; `CONFIG.SHEETS` (`Config.gs`) names the tabs the app manages directly (`Sales`, `Expenses`, `ExpenseSetup`, `Goals`). Sheets not listed there but still read/written by this app (`Daily Entry Log`, `Import Short Debtors`, `Payments Snapshot`) define their own sheet-name constants next to the code that owns them, since they're single-feature concerns.
 
 **This spreadsheet is shared with a separate, sibling Apps Script project, `employee-debts-api`** (a standalone JSON API for an employee-facing PWA, `employee-debts-app` — both live outside this repo). That project opens the same file by ID (`SpreadsheetApp.openById()`, not container binding) and reads/writes the `Debts Snapshot` and `Employees` tabs. Changes to those two tabs' column layout are a cross-repo breaking change.
 
@@ -69,6 +69,7 @@ Other load-bearing, non-obvious facts about this integration:
 - Creating an invoice requires `client_email` even for clients with none on file, or Daftra rejects it outright when their "invoicing method" is Email — always send a real address or an RFC 2606 `*.invalid` placeholder, never omit it.
 - Creating a client payment requires `status: 1` explicitly, or it's silently accepted (200, real ID) but never actually shows up anywhere in Daftra.
 - Every `Bulk*.gs` write (`createBulkSalesInvoices`, `createBulkClientPayments`) processes each row independently inside its own try/catch — one bad row must never lose the rest of the batch — and both log every attempt (success or failure) to the "Daily Entry Log" sheet via `logDailyEntry_()` (`DailyEntryLog.gs`).
+- Supplier payments (the sales form's Payments field) come from `journals.json?entity_type=purchase_order_payment` — one journal per payment, `entity_id` = payment id, `total_debit` = amount (float noise, round it), and the `treasury` leg in `JournalTransaction[]` embeds its `JournalAccount` (`entity_id` = treasury id). Daftra-created `supplier_credit` payments have no journal and are deliberately not included. See DECISIONS.md (2026-10-26).
 - Client/product/treasury lookups paginate fully (no fixed page cap) — a fixed cap previously hid real records once the account grew past it.
 
 When adding a new Daftra endpoint, add a corresponding `test*()` function (see the existing `testDaftra*` functions) that logs the raw response before wiring it into real UI — Daftra's API docs (docs.daftara.dev) are inconsistent enough that this has caught real mismatches every time.

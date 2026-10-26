@@ -316,6 +316,158 @@ function getDaftraCashDeposit(dateStr) {
         .reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
 }
 
+// Supplier payments recorded in Daftra on `dateStr` -- the "Payments" field
+// of the sales form (column E, "=a+b+c").
+//
+// Source: journals.json?entity_type=purchase_order_payment. Every payment
+// entered through Daftra's "Supplier Payments" screen creates one journal
+// whose entity_id is the payment id and whose JournalTransaction[] carries
+// a "treasury" leg (with the treasury's JournalAccount embedded, so no
+// extra lookup per payment) and a "supplier" leg. Confirmed against the
+// real account 2026-10-26: Sept 2026 P&L payments match this exactly on
+// the days nothing was edited after closing.
+//
+// Owner's rules (2026-10-26, see DECISIONS.md):
+// - Every payment counts, whatever treasury it came out of. A payment that
+//   isn't from the primary cash box gets a note instead of being dropped --
+//   payments are always expected to be cash, so a bank-treasury payment
+//   is most likely a data-entry mistake in Daftra worth checking.
+// - Payments Daftra creates itself (payment_method "supplier_credit",
+//   settling an invoice from the supplier's balance) have no journal, so
+//   they never appear here -- correct, since no cash leaves the drawer.
+//
+// Throws on any incomplete fetch: a partial list would silently understate
+// the day's sales, so better no auto-fill than a wrong one.
+function getDaftraSupplierPayments(dateStr) {
+    requireAuthorizedUser_();
+
+    const treasuries = {};
+    let primaryTreasuryId = null;
+    daftraFetchAllPages_("treasuries.json", {}).forEach((item) => {
+        const t = daftraUnwrap_(item, "Treasury");
+        treasuries[String(t.id)] = t;
+        if (String(t.is_primary) === "1") primaryTreasuryId = String(t.id);
+    });
+
+    const journals = daftraFetchAllPages_("journals.json", {
+        entity_type: "purchase_order_payment",
+        date_from: dateStr,
+        date_to: dateStr,
+    }).map((item) => daftraUnwrap_(item, "Journal"));
+
+    const payments = journals
+        // date_from/date_to is trusted, but a stray other-day row would
+        // land in the wrong report, so double-check.
+        .filter((j) => String(j.date) === dateStr)
+        .sort((a, b) => Number(a.id) - Number(b.id))
+        .map((j) =>
+            supplierPaymentFromJournal_(j, treasuries, primaryTreasuryId),
+        );
+
+    const total = round2_(payments.reduce((sum, p) => sum + p.amount, 0));
+
+    return {
+        date: dateStr,
+        payments,
+        expression: payments.map((p) => formatAmount_(p.amount)).join("+"),
+        total,
+        count: payments.length,
+        flaggedCount: payments.filter((p) => p.note).length,
+    };
+}
+
+function supplierPaymentFromJournal_(j, treasuries, primaryTreasuryId) {
+    const legs = j.JournalTransaction || [];
+    const treasuryLeg = legs.find((t) => t.subkey === "treasury");
+    const supplierLeg = legs.find((t) => t.subkey === "supplier");
+
+    const description = String(j.description || "");
+    const codeMatch = description.match(/#(\d+)/);
+
+    let treasuryId = "";
+    let treasuryName = "";
+    let note = "";
+
+    const account = treasuryLeg && treasuryLeg.JournalAccount;
+    if (account && account.entity_type === "treasury") {
+        treasuryId = String(account.entity_id);
+        const treasury = treasuries[treasuryId];
+        treasuryName = (treasury && treasury.name) || account.name || "";
+
+        if (treasury && String(treasury.type) === "1") {
+            note =
+                "Bank transfer (" +
+                treasuryName.trim() +
+                ") -- expected cash, check in Daftra";
+        } else if (primaryTreasuryId && treasuryId !== primaryTreasuryId) {
+            note =
+                "Paid from " + treasuryName.trim() + ", not the main cash box";
+        }
+    } else {
+        note = "No treasury on this payment's journal -- check in Daftra";
+    }
+
+    return {
+        paymentId: String(j.entity_id),
+        journalId: String(j.id),
+        code: codeMatch ? codeMatch[1] : "",
+        supplier:
+            (supplierLeg &&
+                supplierLeg.JournalAccount &&
+                supplierLeg.JournalAccount.name) ||
+            "",
+        amount: round2_(Number(j.total_debit) || 0),
+        treasuryId,
+        treasuryName: treasuryName.trim(),
+        note,
+        created: String(j.created || ""),
+        modified: String(j.modified || ""),
+    };
+}
+
+// Fetches every page of a Daftra list endpoint. No page cap (a fixed cap
+// once hid real records -- see CLAUDE.md), and throws if Daftra's own
+// total_results disagrees with what came back, so a short read can't pass
+// silently.
+function daftraFetchAllPages_(path, params) {
+    const all = [];
+    let page = 1;
+    let pageCount = 1;
+    let expected = null;
+
+    do {
+        const payload = daftraGet_(
+            path,
+            Object.assign({}, params, { limit: 100, page }),
+        );
+        all.push(...daftraExtractList_(payload));
+
+        const pagination = payload && payload.pagination;
+        pageCount = pagination ? Number(pagination.page_count) || 1 : 1;
+        if (pagination && pagination.total_results != null) {
+            expected = Number(pagination.total_results);
+        }
+        page++;
+    } while (page <= pageCount);
+
+    if (expected !== null && all.length !== expected) {
+        throw new Error(
+            `Incomplete read from ${path}: got ${all.length} of ${expected} records`,
+        );
+    }
+
+    return all;
+}
+
+// Daftra amounts carry float noise (e.g. "760.00008").
+function round2_(n) {
+    return Math.round(n * 100) / 100;
+}
+
+function formatAmount_(n) {
+    return String(round2_(n));
+}
+
 // Fetches all Daftra-backed figures for one date. A failure on any one of
 // them (network hiccup, bad field name) doesn't block the others -- it
 // falls back to 0 for that figure and reports what broke so the form
@@ -328,8 +480,15 @@ function getDaftraDailyTotals(dateStr) {
     const result = {
         otherExpenses: 0,
         cashDeposit: 0,
+        supplierPayments: null,
         errors: [],
     };
+
+    try {
+        result.supplierPayments = getDaftraSupplierPayments(dateStr);
+    } catch (e) {
+        result.errors.push("Supplier Payments: " + e.message);
+    }
 
     try {
         result.otherExpenses = getDaftraOtherExpenses(dateStr);
@@ -474,4 +633,44 @@ function testDaftraTreasuries() {
 
     Logger.log("--- Mapped treasuries (searchDaftraTreasuries) ---");
     Logger.log(JSON.stringify(searchDaftraTreasuries(), null, 2));
+}
+
+// Run manually from the editor: logs the raw journals response for one
+// day, then what getDaftraSupplierPayments() makes of it, so the
+// auto-filled Payments field can be checked against Daftra's own Supplier
+// Payments screen and the P&L Sales row (column E) for that date.
+function testDaftraSupplierPayments() {
+    requireAuthorizedUser_();
+    // A day already closed in the P&L, to compare against column E.
+    const TEST_DATE = "2026-09-10";
+
+    Logger.log(
+        "--- Raw journals.json (page 1, first 2 rows) for " +
+            TEST_DATE +
+            " ---",
+    );
+    try {
+        const raw = daftraGet_("journals.json", {
+            entity_type: "purchase_order_payment",
+            date_from: TEST_DATE,
+            date_to: TEST_DATE,
+            limit: 2,
+        });
+        Logger.log(JSON.stringify(raw, null, 2).slice(0, 8000));
+    } catch (e) {
+        Logger.log("Raw fetch failed: " + e.message);
+    }
+
+    Logger.log("--- getDaftraSupplierPayments(" + TEST_DATE + ") ---");
+    const result = getDaftraSupplierPayments(TEST_DATE);
+    Logger.log(
+        `${result.count} payments, total ${result.total}, ${result.flaggedCount} flagged`,
+    );
+    Logger.log("Expression: " + result.expression);
+    result.payments.forEach((p) =>
+        Logger.log(
+            `#${p.code} id=${p.paymentId} ${p.amount} ${p.supplier} [${p.treasuryName}]` +
+                (p.note ? " NOTE: " + p.note : ""),
+        ),
+    );
 }

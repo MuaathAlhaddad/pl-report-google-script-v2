@@ -5,6 +5,29 @@ Application changes, newest first. The reasoning behind each change goes in
 
 ---
 
+## 2026-10-26
+
+### Added — Supplier Payments auto-filled from Daftra
+
+- **Sales form:** the Payments field is pre-filled with that day's Daftra supplier payments
+  (`a+b+c`, oldest first) via new `getDaftraSupplierPayments()` in `Daftra.gs`. It stays
+  editable. Under the total, the form shows Daftra's count and total, warns if the field no
+  longer matches Daftra, and lists any payment not paid from the main cash box (e.g. a bank
+  transfer) with a note. If Daftra can't be read completely, the field is left empty and the
+  error is shown.
+- **New `Payments Snapshot` tab** (`PaymentsSnapshot.gs`), created on first use: when a new
+  report is saved, one row per Daftra payment for that date (payment ID, journal ID, code,
+  supplier, amount, treasury, note, Daftra created/modified, Daftra day total, saved day total).
+  Append-only. If it fails, the report is still saved and an alert says so.
+- `testDaftraSupplierPayments()` logs the raw journals response and the parsed result for one day.
+- Not changed: how column E is written, the Total Sales formula, historical rows, or anything in
+  Daftra (read-only).
+
+**Reason:** Removes the nightly manual copy of supplier payments and keeps a per-payment record
+for the monthly Daftra reconciliation.
+
+---
+
 ## 2026-10-14
 
 ### Security — Web app restricted to the owner

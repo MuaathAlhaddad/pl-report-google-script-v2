@@ -12,6 +12,42 @@ full technical detail on each.
 
 ---
 
+## 2026-10-26 — Supplier Payments auto-filled from Daftra journals; payment IDs snapshotted at save
+
+**Decision:** The sales form's Payments field (Sales column E, `=a+b+c`) is pre-filled from
+Daftra instead of being copied by hand: `getDaftraSupplierPayments()` (`Daftra.gs`) reads
+`journals.json?entity_type=purchase_order_payment` for the report date, one journal per supplier
+payment, amount = `total_debit` rounded to 2 decimals. The field stays a normal editable text
+box, and nothing about how column E is saved or how Total Sales is calculated changed. Owner's
+rules for it:
+1. **Every payment counts, whatever treasury it was paid from.** A payment that isn't from the
+   primary cash box (`الخزينة الاساسية`) is kept in the total but shown with a note under the
+   field — "Bank transfer (…) — expected cash" for a bank treasury (type 1), "Paid from …, not
+   the main cash box" for another cash box. Payments are always expected to be cash, so a bank
+   one is most likely a data-entry mistake in Daftra.
+2. **Daftra-created payments (`payment_method` `supplier_credit`) are left out.** They settle an
+   invoice from the supplier's credit balance, move no cash, and have no journal entry, so they
+   can't be in this list anyway. They're only visible inside each purchase invoice's
+   `PurchaseOrderPayment[]` (no by-date API lookup short of scanning all ~6,000 invoices), so
+   they aren't shown in the form either.
+3. **Payment IDs are stored at save time** in a new, append-only `Payments Snapshot` tab
+   (`PaymentsSnapshot.gs`): one row per Daftra payment for that date, re-fetched at the moment of
+   saving, with both the Daftra total and the total actually saved in column E. This lets the
+   monthly reconciliation say *which* payment was added, deleted or changed after closing,
+   instead of only that the totals differ. A snapshot failure never blocks or undoes the save;
+   the form just reports it. Only new reports are snapshotted (not edits via the Edit modal).
+
+The fetch is all-or-nothing: every page is read and the count is checked against Daftra's
+`total_results`; on any problem the field is left empty and the error is shown, as with the
+other auto-filled fields, rather than filling a partial (understated) total.
+
+**Why:** Copying 15–35 amounts a night by hand is slow and error-prone, and the Sept 2026 audit
+(P&L vs Daftra) showed the journals API reproduces the P&L Payments exactly on every day nothing
+was edited after closing (24 of 30 days; the other 6 are post-closing edits). The journal's
+treasury leg embeds the treasury's account, so flagging costs one extra request (`treasuries.json`).
+
+---
+
 ## 2026-10-14 — Web app locked to the owner: manifest access MYSELF + server-side guard
 
 **Decision:** Two layers.

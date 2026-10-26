@@ -76,6 +76,10 @@ function initializeSalesForm() {
 // with the real <input> revealed via double-click for a quick correction.
 const AUTO_FILL_FIELDS = ["otherExpenses"];
 
+// Supplier payments fetched from Daftra for the form's date (see
+// getDaftraSupplierPayments() in Daftra.gs); null if the fetch failed.
+let DAFTRA_PAYMENTS = null;
+
 function fillForm(data) {
     document.getElementById("date").value = data.date ?? "";
 
@@ -90,6 +94,10 @@ function fillForm(data) {
     document.getElementById("cash").value = data.cash ?? 0;
 
     document.getElementById("payments").value = data.payments ?? "";
+
+    // What Daftra had when the form opened -- kept so the summary can show
+    // its per-payment notes and warn if the field is edited away from it.
+    DAFTRA_PAYMENTS = data.supplierPayments || null;
 
     document.getElementById("otherExpenses").value = data.otherExpenses ?? 0;
 
@@ -227,8 +235,17 @@ function submitData() {
     saveButton.disabled = true;
 
     google.script.run
-        .withSuccessHandler(function () {
+        .withSuccessHandler(function (result) {
             saveButton.disabled = false;
+
+            // The report itself is saved; only the payment-ID record failed.
+            if (result && result.snapshotError) {
+                alert(
+                    "Report saved, but the Daftra payments snapshot could not be recorded:\n\n" +
+                        result.snapshotError,
+                );
+            }
+
             showDashboard();
         })
         .withFailureHandler(function (err) {
@@ -263,7 +280,37 @@ function updatePayments() {
 
     document.getElementById("paymentsInfo").innerHTML =
         `Payments: <b>${paymentInfo.count}</b> &nbsp; | &nbsp;
-         Total: <b>${money(paymentInfo.total)}</b>`;
+         Total: <b>${money(paymentInfo.total)}</b>` +
+        daftraPaymentsHtml(paymentInfo);
+}
+
+// Under the Payments total: where the figures came from, a warning if the
+// field no longer matches Daftra, and every payment Daftra flagged (e.g.
+// a bank-treasury payment that was expected to be cash).
+function daftraPaymentsHtml(paymentInfo) {
+    const d = DAFTRA_PAYMENTS;
+    if (!d) return "";
+
+    let html = `<div class="daftraPayments">From Daftra: <b>${d.count}</b> payments, <b>${money(d.total)}</b>`;
+
+    if (Math.abs(paymentInfo.total - d.total) > 0.005) {
+        html += `<div class="daftraPaymentsWarn">⚠ The field differs from Daftra by ${money(paymentInfo.total - d.total)}</div>`;
+    }
+
+    const flagged = d.payments.filter((p) => p.note);
+    if (flagged.length) {
+        html +=
+            '<ul class="daftraPaymentsFlagged">' +
+            flagged
+                .map(
+                    (p) =>
+                        `<li>#${escapeHtml(p.code)} ${escapeHtml(p.supplier)} — <b>${money(p.amount)}</b>: ${escapeHtml(p.note)}</li>`,
+                )
+                .join("") +
+            "</ul>";
+    }
+
+    return html + "</div>";
 }
 
 // used for page header
