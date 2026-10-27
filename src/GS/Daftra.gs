@@ -359,7 +359,9 @@ function getDaftraSupplierPayments(dateStr) {
         // date_from/date_to is trusted, but a stray other-day row would
         // land in the wrong report, so double-check.
         .filter((j) => String(j.date) === dateStr)
-        .sort((a, b) => Number(a.id) - Number(b.id));
+        // Newest first (owner's choice, 2026-10-27), so the most recent
+        // payments lead the Payments field and the snapshot rows.
+        .sort((a, b) => Number(b.id) - Number(a.id));
 
     // Called with the API key (as Apps Script does), journals.json does NOT
     // embed each leg's JournalAccount -- only journal_account_id. (A

@@ -13,6 +13,11 @@ Application changes, newest first. The reasoning behind each change goes in
   flagged. Treasury and supplier are now looked up by account id (cached 6 hours). Amounts
   and the Payments total were unaffected.
 
+### Changed — Supplier payments listed newest first
+
+- The Payments field (and the Payments Snapshot rows) now list payments in descending order
+  (newest Daftra journal first) instead of oldest first. The total is unchanged.
+
 ---
 
 ## 2026-10-26
