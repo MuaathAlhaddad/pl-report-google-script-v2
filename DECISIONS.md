@@ -37,6 +37,14 @@ rules for it:
    instead of only that the totals differ. A snapshot failure never blocks or undoes the save;
    the form just reports it. Only new reports are snapshotted (not edits via the Edit modal).
 
+**Fix (2026-10-27):** called with the API key, `journals.json` does not embed each leg's
+`JournalAccount` (only `journal_account_id`), unlike a logged-in browser session, which is
+what the first browser-based check used. Live, every payment showed "No treasury" and no
+supplier name. Account ids are now resolved via `journal_accounts/{id}.json`
+(`daftraJournalAccounts_`, parallel `fetchAll`, 6-hour script cache). A failed lookup only
+adds a note; the amount is still counted. Lesson: verify Daftra response shapes from Apps
+Script (a `test*()` run in the editor), not from the browser session.
+
 The fetch is all-or-nothing: every page is read and the count is checked against Daftra's
 `total_results`; on any problem the field is left empty and the error is shown, as with the
 other auto-filled fields, rather than filling a partial (understated) total.

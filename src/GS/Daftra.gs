@@ -355,14 +355,30 @@ function getDaftraSupplierPayments(dateStr) {
         date_to: dateStr,
     }).map((item) => daftraUnwrap_(item, "Journal"));
 
-    const payments = journals
+    const dayJournals = journals
         // date_from/date_to is trusted, but a stray other-day row would
         // land in the wrong report, so double-check.
         .filter((j) => String(j.date) === dateStr)
-        .sort((a, b) => Number(a.id) - Number(b.id))
-        .map((j) =>
-            supplierPaymentFromJournal_(j, treasuries, primaryTreasuryId),
-        );
+        .sort((a, b) => Number(a.id) - Number(b.id));
+
+    // Called with the API key (as Apps Script does), journals.json does NOT
+    // embed each leg's JournalAccount -- only journal_account_id. (A
+    // logged-in browser session does embed it, which is why a browser check
+    // looked fine; confirmed 2026-10-27 from testDaftraSupplierPayments in
+    // the editor.) So resolve the account ids (treasury + supplier) here.
+    const accountIds = [];
+    dayJournals.forEach((j) =>
+        (j.JournalTransaction || []).forEach((t) => {
+            if (!t.JournalAccount && t.journal_account_id) {
+                accountIds.push(String(t.journal_account_id));
+            }
+        }),
+    );
+    const accounts = daftraJournalAccounts_(accountIds);
+
+    const payments = dayJournals.map((j) =>
+        supplierPaymentFromJournal_(j, treasuries, primaryTreasuryId, accounts),
+    );
 
     const total = round2_(payments.reduce((sum, p) => sum + p.amount, 0));
 
@@ -376,10 +392,15 @@ function getDaftraSupplierPayments(dateStr) {
     };
 }
 
-function supplierPaymentFromJournal_(j, treasuries, primaryTreasuryId) {
+function supplierPaymentFromJournal_(j, treasuries, primaryTreasuryId, accounts) {
     const legs = j.JournalTransaction || [];
     const treasuryLeg = legs.find((t) => t.subkey === "treasury");
     const supplierLeg = legs.find((t) => t.subkey === "supplier");
+    const accountOf = (leg) =>
+        leg &&
+        (leg.JournalAccount ||
+            (accounts || {})[String(leg.journal_account_id)] ||
+            null);
 
     const description = String(j.description || "");
     const codeMatch = description.match(/#(\d+)/);
@@ -388,8 +409,13 @@ function supplierPaymentFromJournal_(j, treasuries, primaryTreasuryId) {
     let treasuryName = "";
     let note = "";
 
-    const account = treasuryLeg && treasuryLeg.JournalAccount;
-    if (account && account.entity_type === "treasury") {
+    const account = accountOf(treasuryLeg);
+    if (treasuryLeg && !account) {
+        note =
+            "Couldn't look up this payment's treasury in Daftra (account " +
+            treasuryLeg.journal_account_id +
+            ") -- amount is still counted";
+    } else if (account && account.entity_type === "treasury") {
         treasuryId = String(account.entity_id);
         const treasury = treasuries[treasuryId];
         treasuryName = (treasury && treasury.name) || account.name || "";
@@ -411,11 +437,7 @@ function supplierPaymentFromJournal_(j, treasuries, primaryTreasuryId) {
         paymentId: String(j.entity_id),
         journalId: String(j.id),
         code: codeMatch ? codeMatch[1] : "",
-        supplier:
-            (supplierLeg &&
-                supplierLeg.JournalAccount &&
-                supplierLeg.JournalAccount.name) ||
-            "",
+        supplier: (accountOf(supplierLeg) || {}).name || "",
         amount: round2_(Number(j.total_debit) || 0),
         treasuryId,
         treasuryName: treasuryName.trim(),
@@ -423,6 +445,66 @@ function supplierPaymentFromJournal_(j, treasuries, primaryTreasuryId) {
         created: String(j.created || ""),
         modified: String(j.modified || ""),
     };
+}
+
+// Looks up Daftra journal accounts by id (journal_accounts/{id}.json),
+// returning { id: JournalAccount }. Accounts (a treasury's or a supplier's)
+// essentially never change, so each one is cached for 6 hours and the
+// rest are fetched in parallel. An id that fails to load is simply missing
+// from the result -- callers note it rather than fail the whole day.
+function daftraJournalAccounts_(ids) {
+    const unique = [...new Set(ids.map(String))];
+    const result = {};
+    if (!unique.length) return result;
+
+    const cache = CacheService.getScriptCache();
+    const cacheKey = (id) => "daftra_journal_account_" + id;
+    const cached = cache.getAll(unique.map(cacheKey));
+
+    const missing = [];
+    unique.forEach((id) => {
+        const hit = cached[cacheKey(id)];
+        if (hit) result[id] = JSON.parse(hit);
+        else missing.push(id);
+    });
+    if (!missing.length) return result;
+
+    const { subdomain, apiKey } = getDaftraConfig_();
+    const responses = UrlFetchApp.fetchAll(
+        missing.map((id) => ({
+            url: `https://${subdomain}.daftra.com/api2/journal_accounts/${encodeURIComponent(id)}.json`,
+            method: "get",
+            headers: { APIKEY: apiKey, Accept: "application/json" },
+            muteHttpExceptions: true,
+        })),
+    );
+
+    const toCache = {};
+    responses.forEach((response, i) => {
+        if (response.getResponseCode() !== 200) return;
+        try {
+            const payload = JSON.parse(response.getContentText());
+            const account = daftraUnwrap_(
+                (payload && payload.data) || payload,
+                "JournalAccount",
+            );
+            if (!account || !account.id) return;
+            // Only the fields used here, to stay well under cache limits.
+            const slim = {
+                id: String(account.id),
+                name: account.name || "",
+                entity_type: account.entity_type || "",
+                entity_id: String(account.entity_id || ""),
+            };
+            result[missing[i]] = slim;
+            toCache[cacheKey(missing[i])] = JSON.stringify(slim);
+        } catch (e) {
+            // Unparseable -- treated as not found.
+        }
+    });
+    if (Object.keys(toCache).length) cache.putAll(toCache, 21600);
+
+    return result;
 }
 
 // Fetches every page of a Daftra list endpoint. No page cap (a fixed cap

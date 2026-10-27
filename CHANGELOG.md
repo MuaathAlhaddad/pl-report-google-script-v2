@@ -5,6 +5,16 @@ Application changes, newest first. The reasoning behind each change goes in
 
 ---
 
+## 2026-10-27
+
+### Fixed — Supplier payments showed "No treasury" and no supplier name
+
+- With the API key, Daftra's journals don't include account details, so every payment was
+  flagged. Treasury and supplier are now looked up by account id (cached 6 hours). Amounts
+  and the Payments total were unaffected.
+
+---
+
 ## 2026-10-26
 
 ### Added — Supplier Payments auto-filled from Daftra
